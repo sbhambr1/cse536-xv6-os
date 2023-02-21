@@ -11,6 +11,8 @@
 void main();
 void timerinit();
 
+#define SYSINFOADDR 0x80080000
+
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char bl_stack[STSIZE * NCPU];
 
@@ -58,8 +60,8 @@ start()
   // CSE 536: Task 2.4
   //  Enable R/W/X access to all parts of the address space, 
   //  except for the upper 10 MB (0 - 117 MB) using PMP
-  w_pmpaddr0(0x0ull); 
-  w_pmpcfg0(0x0);
+  w_pmpaddr0(0x21d40000);
+  w_pmpcfg0(0xf);
 
   // CSE 536: Task 2.5
   // Load the kernel binary to its correct location
@@ -74,14 +76,25 @@ start()
   // CSE 536: Task 2.5.2
   // Find the kernel binary size and copy it to the load address
   kernel_size       = find_kernel_size();
+  memmove((char *)kernel_load_addr, (char *)RAMDISK+4096, (kernel_size-4096));
 
   // CSE 536: Task 2.5.3
   // Find the entry address and write it to mepc
   kernel_entry_addr = find_kernel_entry_addr();
+  w_mepc(kernel_entry_addr);
 
   // CSE 536: Task 2.6
   // Provide system information to the kernel
+  sys_info_ptr = (struct sys_info*)SYSINFOADDR;
+  sys_info_ptr->bl_start = (uint64)0x80000000;
+  sys_info_ptr->bl_end = end;
+  sys_info_ptr->dr_start = (uint64)0x80000000;
+  sys_info_ptr->dr_end = (uint64)0x4D4B400;
+  sys_info_ptr->vendor = r_vendor();
+  sys_info_ptr->arch = r_architecture();
+  sys_info_ptr->impl = r_implementation();  
 
   // CSE 536: Task 2.5.3
   // Jump to the OS kernel code
+  asm volatile("mret");
 }

@@ -4,21 +4,27 @@
 static inline uint64
 r_vendor()
 {
-  return 0;
+  uint64 vendor_id;
+  asm volatile("csrr %0, mvendorid" : "=r" (vendor_id));
+  return vendor_id;
 }
  
 // CSE 536: Task 2.6
 static inline uint64
 r_architecture()
 {
-  return 0;
+  uint64 arch_id; 
+  asm volatile("csrr %0, marchid" : "=r" (arch_id));
+  return arch_id;
 }
  
 // CSE 536: Task 2.6
 static inline uint64
 r_implementation()
 {
-  return 0;
+  uint64 imp_id; 
+  asm volatile("csrr %0, mimpid" : "=r" (imp_id));
+  return imp_id;
 }
 
 // which hart (core) is this?
