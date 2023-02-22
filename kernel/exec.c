@@ -32,7 +32,7 @@ exec(char *path, char **argv)
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
 
-  if (strncmp(path, "/init", 5) == 0 || strncmp(path, "/sh", 3) == 0) {
+  if (strncmp(path, "/init", 5) == 0 || strncmp(path, "sh", 2) == 0) {
     p->ondemand = false;
   }
   else{
@@ -40,9 +40,9 @@ exec(char *path, char **argv)
   }
 
   /* CSE 536: (2.1) Check on-demand status. */
-  if (p->ondemand == true) {
-    print_ondemand_proc(path);
-  }
+  // if (p->ondemand == true) {
+  //   print_ondemand_proc(path);
+  // }
 
   begin_op();
 
@@ -76,14 +76,8 @@ exec(char *path, char **argv)
       goto bad;
 
     uint64 sz1;
-    if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0)
-      goto bad;
-    sz = sz1;
-    if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
-      goto bad;
-
     if(p->ondemand == false){
-      uint64 sz1;
+      print_ondemand_proc(path);
       if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0)
         goto bad;
       sz = sz1;
@@ -94,9 +88,9 @@ exec(char *path, char **argv)
       print_skip_section(path, ph.vaddr, ph.memsz);
       continue;
     }
-
-    
   }
+
+
   iunlockput(ip);
   end_op();
   ip = 0;
