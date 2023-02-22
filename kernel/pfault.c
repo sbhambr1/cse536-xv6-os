@@ -80,6 +80,9 @@ void page_fault_handler(void)
 
     /* Find faulting address. */
     uint64 faulting_addr = 0;
+    faulting_addr = r_stval();
+    // get the faulting address from stval and find the base address of the page
+    faulting_addr = PGROUNDDOWN(faulting_addr);
     print_page_fault(p->name, faulting_addr);
 
     /* Check if the fault address is a heap page. Use p->heap_tracker */
