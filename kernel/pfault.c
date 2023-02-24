@@ -82,8 +82,67 @@ void page_fault_handler(void)
     uint64 faulting_addr = 0;
     faulting_addr = r_stval();
     // get the faulting address from stval and find the base address of the page
-    faulting_addr = PGROUNDDOWN(faulting_addr);
+    // faulting_addr = PGROUNDDOWN(faulting_addr);
+    faulting_addr >>= 12;
+    faulting_addr <<= 12;
     print_page_fault(p->name, faulting_addr);
+
+    // iterate through each program section header using binary's elf header
+    struct elfhdr elf;
+    struct proghdr ph;
+    struct inode *ip;
+    int i, off;
+    uint64 pagesize = PGSIZE, allowed_size = 0, offset = 0, sz = 0;
+    pagetable_t pagetable = 0;
+    char* path = p->name;
+
+    // same checks as in exec.c
+    begin_op();    
+
+    if((ip = namei(path)) == 0){
+        end_op();
+    }
+    ilock(ip);
+    
+    // read the elf header
+    if(readi(ip, 0, (uint64)&elf, 0, sizeof(elf)) != sizeof(elf))
+        goto bad;
+
+    if(elf.magic != ELF_MAGIC)
+        goto bad;
+
+    if((pagetable = p->pagetable) == 0)
+        goto bad;
+
+    // read the program section headers to find the one that contains the faulting address
+    for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
+        if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph))
+            goto bad;
+        if(ph.type != ELF_PROG_LOAD)
+            continue;
+        if(ph.memsz < ph.filesz)
+            goto bad;
+        if(ph.vaddr + ph.memsz < ph.vaddr)
+            goto bad;
+        if(ph.vaddr % PGSIZE != 0)
+            goto bad;
+        // find the program section header that contains the faulting address
+        if((faulting_addr >= ph.vaddr) && (faulting_addr < (ph.vaddr + ph.memsz))){
+
+            allowed_size = ph.vaddr + ph.memsz - faulting_addr;
+            if (allowed_size < pagesize)
+                pagesize = allowed_size;
+
+            offset = faulting_addr - ph.vaddr + ph.off;
+
+            // allocate a free page for the faulting address
+            uvmalloc(pagetable, faulting_addr, faulting_addr + pagesize, flags2perm(ph.flags));
+            // load the program section into the allocated page
+            loadseg(pagetable, faulting_addr, ip, offset, pagesize);
+            print_load_seg(faulting_addr, ph.off, pagesize);
+            goto out;
+        }
+    }
 
     /* Check if the fault address is a heap page. Use p->heap_tracker */
     if (true) {
@@ -113,6 +172,14 @@ heap_handle:
 
     /* Track that another heap page has been brought into memory. */
     p->resident_heap_pages++;
+
+bad:
+    if(pagetable)
+        proc_freepagetable(pagetable, sz);
+    if(ip){
+        iunlockput(ip);
+        end_op();
+    }
 
 out:
     /* Flush stale page table entries. This is important to always do. */
