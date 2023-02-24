@@ -87,6 +87,12 @@ void page_fault_handler(void)
     faulting_addr <<= 12;
     print_page_fault(p->name, faulting_addr);
 
+    for(int i=0; i<MAXHEAP; i++) {
+        if(p->heap_tracker[i].addr == faulting_addr) {
+            goto heap_handle;
+        }
+    }
+
     // iterate through each program section header using binary's elf header
     struct elfhdr elf;
     struct proghdr ph;
@@ -143,14 +149,7 @@ void page_fault_handler(void)
             goto out;
         }
     }
-
-    /* Check if the fault address is a heap page. Use p->heap_tracker */
-    if (true) {
-        goto heap_handle;
-    }
-
-    /* If it came here, it is a page from the program binary that we must load. */
-    print_load_seg(faulting_addr, 0, 0);
+    iunlockput(ip);
 
     /* Go to out, since the remainder of this code is for the heap. */
     goto out;
@@ -162,6 +161,10 @@ heap_handle:
     }
 
     /* 2.3: Map a heap page into the process' address space. (Hint: check growproc) */
+    uint64 size;
+    size = uvmalloc(p->pagetable, p->sz, p->sz+PGSIZE, PTE_W);
+    printf("size: %d\n", size);
+    p->sz = size;
 
     /* 2.4: Update the last load time for the loaded heap page in p->heap_tracker. */
 
@@ -172,6 +175,7 @@ heap_handle:
 
     /* Track that another heap page has been brought into memory. */
     p->resident_heap_pages++;
+    goto out;
 
 bad:
     if(pagetable)

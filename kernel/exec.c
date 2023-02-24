@@ -40,9 +40,9 @@ exec(char *path, char **argv)
   }
 
   /* CSE 536: (2.1) Check on-demand status. */
-  // if (p->ondemand == true) {
-  //   print_ondemand_proc(path);
-  // }
+  if (p->ondemand == true) {
+    print_ondemand_proc(path);
+  }
 
   begin_op();
 
@@ -84,7 +84,7 @@ exec(char *path, char **argv)
         goto bad;
     }
     else{
-      print_ondemand_proc(path);
+      // print_ondemand_proc(path);
       print_skip_section(path, ph.vaddr, ph.memsz);
       sz = PGROUNDUP(ph.vaddr + ph.memsz);
     }

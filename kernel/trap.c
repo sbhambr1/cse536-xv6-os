@@ -72,6 +72,7 @@ usertrap(void)
       exit(-1);
     page_fault_handler();
     intr_on();
+    // syscall();
   } 
   
   else if((which_dev = devintr()) != 0){

@@ -280,9 +280,26 @@ growproc(int n)
   /* CSE 536: (2.3) Instead of allocating pages, make these allocations
    * on-demand. Also, keep track of all allocated heap pages. 
    */
+  if (strncmp(p->name, "/init", 5) == 0 || strncmp(p->name, "sh", 2) == 0) {
+    p->ondemand = false;
+  }
+  else{
+    p->ondemand = true;
+  }
 
   /* CSE 536: For simplicity, I've made all allocations at page-level. */
   n = PGROUNDUP(n);
+
+  sz = p->sz;
+  if (p->ondemand) {
+    uint64 i, addr;
+    sz = PGROUNDUP(sz);
+    for(i = 0, addr = sz; addr < sz + n; i++, addr += PGSIZE) {
+      p->heap_tracker[i].addr = addr;
+    }
+  print_skip_heap_region(p->name, sz, i);
+  return 0;
+  }
 
   sz = p->sz;
   if(n > 0){
