@@ -38,35 +38,95 @@ void init_psa_regions(void)
 void evict_page_to_disk(struct proc* p) {
     /* Find free block */
     int blockno = 0;
-    /* Find victim page using FIFO. */
+    // Find 4 free blocks in the PSA.
+    for (int i = 0; i < PSASIZE; i+=4) {
+        if (psa_tracker[i] == false) {
+            psa_tracker[i] = true;
+            blockno = i;
+            break;
+        }
+    }
+    
+    // Find the victim page address and victim timestamp using FIFO.
+    uint64 victim_addr = 0, idx = 0;
+    uint64 victim_timestamp = 0xFFFFFFFFFFFFFFFF;
+    for(int i=0; i<MAXHEAP; i++) {
+        if(p->heap_tracker[i].loaded == true) {
+            if(p->heap_tracker[i].last_load_time < victim_timestamp) {
+                victim_addr = p->heap_tracker[i].addr;
+                victim_timestamp = p->heap_tracker[i].last_load_time;
+                idx = i;
+            }
+        }
+    }
+
+    p->heap_tracker[idx].startblock = blockno;
+    p->heap_tracker[idx].loaded = false;
+
     /* Print statement. */
-    print_evict_page(0, 0);
+    print_evict_page(p->heap_tracker[idx].addr, p->heap_tracker[idx].startblock);
+
     /* Read memory from the user to kernel memory first. */
+    // Copy victim page from user memory to kernel memory using copyin function.
+    char *kernel_alloc;
+    kernel_alloc = (char*)kalloc();
+    copyin(p->pagetable, kernel_alloc, (char*)p->heap_tracker[idx].addr, PGSIZE);
     
     /* Write to the disk blocks. Below is a template as to how this works. There is
      * definitely a better way but this works for now. :p */
-    struct buf* b;
-    b = bread(1, PSASTART+(blockno));
-        // Copy page contents to b.data using memmove.
-    bwrite(b);
-    brelse(b);
+    // write the kernel memory to the 4 disk blocks using memmove and bwrite
+    for (int i = 0; i < 4; i++) {
+        struct buf* b;
+        b = bread(1, PSASTART+(blockno+i));
+        memmove(b->data, kernel_alloc, 1024);
+        bwrite(b);
+        brelse(b);
+        kernel_alloc += 1024;
+    }
+
 
     /* Unmap swapped out page */
+    // use the victim address to unmap the page using uvmunmap
+    uvmunmap(p->pagetable, p->heap_tracker[idx].addr, 1, 1);
+
     /* Update the resident heap tracker. */
+    p->resident_heap_pages -= 1;
 }
 
 /* Retrieve faulted page from disk. */
 void retrieve_page_from_disk(struct proc* p, uint64 uvaddr) {
     /* Find where the page is located in disk */
+    int blockno = 0;
+    for(int i=0; i<MAXHEAP; i++) {
+        if(p->heap_tracker[i].addr == uvaddr) {
+            blockno = p->heap_tracker[i].startblock;
+            break;
+        }
+    }
+
+    p->heap_tracker[blockno].loaded = false;
+
+    /* Copy from temp kernel page to uvaddr (use copyout) */
+    char *kernel_alloc;
+    kernel_alloc = (char*)kalloc();
+
+    /* Read the disk block into temp kernel page. */
+    for (int i = 0; i < 4; i++) {
+        struct buf* b;
+        b = bread(1, PSASTART+(blockno+i));
+        memmove(kernel_alloc, b->data, 1024);
+        brelse(b);
+        kernel_alloc += 1024;
+    }
+    
+
+    copyout(p->pagetable, (char*)uvaddr, kernel_alloc-PGSIZE, PGSIZE);
 
     /* Print statement. */
-    print_retrieve_page(0, 0);
+    print_retrieve_page(uvaddr, blockno);
 
     /* Create a kernel page to read memory temporarily into first. */
     
-    /* Read the disk block into temp kernel page. */
-
-    /* Copy from temp kernel page to uvaddr (use copyout) */
 }
 
 
@@ -81,6 +141,7 @@ void page_fault_handler(void)
     /* Find faulting address. */
     uint64 faulting_addr = 0;
     faulting_addr = r_stval();
+    
     // get the faulting address from stval and find the base address of the page
     // faulting_addr = PGROUNDDOWN(faulting_addr);
     faulting_addr >>= 12;
@@ -156,18 +217,23 @@ void page_fault_handler(void)
 
 heap_handle:
     /* 2.4: Check if resident pages are more than heap pages. If yes, evict. */
-    if (p->resident_heap_pages == MAXRESHEAP) {
+    if (p->resident_heap_pages >= MAXRESHEAP) {
         evict_page_to_disk(p);
     }
 
     /* 2.3: Map a heap page into the process' address space. (Hint: check growproc) */
     uint64 size;
-    size = uvmalloc(p->pagetable, p->sz, p->sz+PGSIZE, PTE_W);
-    printf("size: %d\n", size);
-    p->sz = size;
+    uvmalloc(p->pagetable, faulting_addr, faulting_addr+PGSIZE, PTE_W);
 
-    /* 2.4: Update the last load time for the loaded heap page in p->heap_tracker. */
-
+    /* 2.4: Update the last load time and the loaded boolean for the loaded heap page in p->heap_tracker. */
+    for(int i=0; i<MAXHEAP; i++) {
+        if(p->heap_tracker[i].addr == faulting_addr) {
+            p->heap_tracker[i].last_load_time = read_current_timestamp();
+            p->heap_tracker[i].loaded = true;
+            break;
+        }
+    }
+    
     /* 2.4: Heap page was swapped to disk previously. We must load it from disk. */
     if (load_from_disk) {
         retrieve_page_from_disk(p, faulting_addr);
@@ -175,6 +241,14 @@ heap_handle:
 
     /* Track that another heap page has been brought into memory. */
     p->resident_heap_pages++;
+
+    // CHECK!
+    if (p->sz > faulting_addr + PGSIZE)
+        p->sz = p->sz;
+    else{
+        p->sz = faulting_addr + PGSIZE;
+    }
+
     goto out;
 
 bad:
