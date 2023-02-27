@@ -104,6 +104,7 @@ void retrieve_page_from_disk(struct proc* p, uint64 uvaddr) {
         }
     }
 
+    p->heap_tracker[blockno].startblock = blockno;
     p->heap_tracker[blockno].loaded = false;
 
     /* Copy from temp kernel page to uvaddr (use copyout) */
@@ -244,7 +245,7 @@ heap_handle:
     /* Track that another heap page has been brought into memory. */
     p->resident_heap_pages++;
 
-    // CHECK!
+    // // CHECK!
     if (p->sz > faulting_addr + PGSIZE)
         p->sz = p->sz;
     else{
