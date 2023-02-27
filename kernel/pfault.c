@@ -119,7 +119,6 @@ void retrieve_page_from_disk(struct proc* p, uint64 uvaddr) {
         kernel_alloc += 1024;
     }
     
-
     copyout(p->pagetable, (char*)uvaddr, kernel_alloc-PGSIZE, PGSIZE);
 
     /* Print statement. */
@@ -150,6 +149,9 @@ void page_fault_handler(void)
 
     for(int i=0; i<MAXHEAP; i++) {
         if(p->heap_tracker[i].addr == faulting_addr) {
+            if(p->heap_tracker[i].startblock != -1) {
+                load_from_disk = true;
+            }
             goto heap_handle;
         }
     }
@@ -222,7 +224,7 @@ heap_handle:
     }
 
     /* 2.3: Map a heap page into the process' address space. (Hint: check growproc) */
-    uint64 size;
+    uint64 size, idx;
     uvmalloc(p->pagetable, faulting_addr, faulting_addr+PGSIZE, PTE_W);
 
     /* 2.4: Update the last load time and the loaded boolean for the loaded heap page in p->heap_tracker. */
