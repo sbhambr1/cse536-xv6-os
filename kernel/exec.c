@@ -7,6 +7,8 @@
 #include "defs.h"
 #include "elf.h"
 
+extern bool psa_tracker[PSASIZE];
+
 // static 
 int loadseg(pde_t *, uint64, struct inode *, uint, uint);
 
@@ -84,7 +86,7 @@ exec(char *path, char **argv)
         goto bad;
     }
     else{
-      // print_ondemand_proc(path);
+      memset(psa_tracker, false, PSASIZE);
       print_skip_section(path, ph.vaddr, ph.memsz);
       sz = PGROUNDUP(ph.vaddr + ph.memsz);
     }

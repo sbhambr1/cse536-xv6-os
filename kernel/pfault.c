@@ -70,6 +70,7 @@ void evict_page_to_disk(struct proc* p) {
     // Copy victim page from user memory to kernel memory using copyin function.
     char *kernel_alloc;
     kernel_alloc = (char*)kalloc();
+    memset(kernel_alloc, 0, PGSIZE);
     copyin(p->pagetable, kernel_alloc, (char*)p->heap_tracker[idx].addr, PGSIZE);
     
     /* Write to the disk blocks. Below is a template as to how this works. There is
@@ -99,13 +100,16 @@ void retrieve_page_from_disk(struct proc* p, uint64 uvaddr) {
     int blockno = 0;
     for(int i=0; i<MAXHEAP; i++) {
         if(p->heap_tracker[i].addr == uvaddr) {
-            blockno = p->heap_tracker[i].startblock;
-            break;
+            if(p->heap_tracker[i].loaded == false){
+                blockno = p->heap_tracker[i].startblock;
+                break;
+            }
         }
     }
 
-    p->heap_tracker[blockno].startblock = blockno;
-    p->heap_tracker[blockno].loaded = false;
+    // p->heap_tracker[blockno].startblock = blockno;
+    // p->heap_tracker[blockno].loaded = false;
+    psa_tracker[blockno] = false;
 
     /* Copy from temp kernel page to uvaddr (use copyout) */
     char *kernel_alloc;
@@ -228,6 +232,11 @@ heap_handle:
     uint64 size, idx;
     uvmalloc(p->pagetable, faulting_addr, faulting_addr+PGSIZE, PTE_W);
 
+    /* 2.4: Heap page was swapped to disk previously. We must load it from disk. */
+    if (load_from_disk) {
+        retrieve_page_from_disk(p, faulting_addr);
+    }
+
     /* 2.4: Update the last load time and the loaded boolean for the loaded heap page in p->heap_tracker. */
     for(int i=0; i<MAXHEAP; i++) {
         if(p->heap_tracker[i].addr == faulting_addr) {
@@ -237,10 +246,7 @@ heap_handle:
         }
     }
     
-    /* 2.4: Heap page was swapped to disk previously. We must load it from disk. */
-    if (load_from_disk) {
-        retrieve_page_from_disk(p, faulting_addr);
-    }
+    
 
     /* Track that another heap page has been brought into memory. */
     p->resident_heap_pages++;
