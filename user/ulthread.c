@@ -11,7 +11,8 @@
 
 /* Get thread ID */
 int get_current_tid(void) {
-    return 0;
+    struct  ulthread *t;
+    return t->tid;
 }
 
 /* Thread initialization */
@@ -35,7 +36,22 @@ void ulthread_init(int schedalgo) {
 /* Thread creation */
 bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", 0, start, stack);
+    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
+
+    struct ulthread *t;
+    t->context.ra = start;
+    t->context.sp = stack;
+    for (int i = 0; i < 6; i++) {
+        t->args[i] = args[i];
+    }
+    t->priority = priority;
+    
+    //TODO: save the context of the current thread
+    ulthread_context_switch(&t->context, NULL);
+
+    if(t->state == RUNNABLE){
+        return true;        
+    }
 
     return false;
 }
