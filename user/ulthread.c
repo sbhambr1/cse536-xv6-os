@@ -15,7 +15,11 @@ int get_current_tid(void) {
 }
 
 /* Thread initialization */
-void ulthread_init(int schedalgo) {}
+void ulthread_init(int schedalgo) {
+    printf("[*] ulthread)init()\n");
+    // assign the first kernel thread to be the first user-level scheduler thread
+
+}
 
 /* Thread creation */
 bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
@@ -40,6 +44,12 @@ void ulthread_yield(void) {
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultyield(tid: %d)\n", 0);
+
+    struct ulthread *p = ulthread_create(0, 0, 0, 0);
+    acquire(&p->lock);
+    p->state = RUNNABLE;
+    ulthread_schedule();
+    release(&p->lock);
 }
 
 /* Destroy thread */
