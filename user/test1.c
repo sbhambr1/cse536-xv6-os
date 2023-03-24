@@ -19,7 +19,7 @@ void ul_start_func(void) {
     /* Start the thread here. */
     for (int i = 0; i < 1000; i++);
 
-    printf("[.] started the thread function (tid = %d) \n", 0);
+    printf("[.] started the thread function (tid = %d) \n", get_current_tid());
 
     /* Notify for a thread exit. */
     ulthread_destroy();

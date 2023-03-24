@@ -9,6 +9,11 @@
 #include <stdbool.h>
 #include <stddef.h> 
 
+/* Get thread ID */
+int get_current_tid(void) {
+    return 0;
+}
+
 /* Thread initialization */
 void ulthread_init(int schedalgo) {}
 
@@ -26,7 +31,7 @@ void ulthread_schedule(void) {
     /* Add this statement to denote which thread-id is being scheduled next */
     printf("[*] ultschedule (next tid: %d)\n", 0);
 
-    // Switch betwee thread contexts
+    // Switch between thread contexts
     ulthread_context_switch(NULL, NULL);
 }
 
