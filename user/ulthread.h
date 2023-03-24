@@ -17,6 +17,8 @@ struct ulthread {
   int killed;
   int xstate;
 
+  struct ulthread *parent;
+
   uint64 stack;
 
   struct context context;

@@ -21,8 +21,8 @@ void ulthread_init(int schedalgo) {
     struct ulthread *t;
     // TODO: Get the current kernel thread and switch to the user-level thread
 
-    ulthread_context_switch(&t->context, NULL);
-    
+    ulthread_context_switch(&t->context, &t->parent->context);
+
     enum ulthread_scheduling_algorithm scheduling_algorithm;
     scheduling_algorithm = schedalgo;
 
@@ -42,7 +42,7 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
     t->priority = priority;
     
     //TODO: save the context of the current thread
-    ulthread_context_switch(&t->context, NULL);
+    ulthread_context_switch(&t->context, &t->parent->context);
 
     if(t->state == RUNNABLE){
         return true;        
