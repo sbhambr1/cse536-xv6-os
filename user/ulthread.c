@@ -22,14 +22,9 @@ void ulthread_init(int schedalgo) {
     // TODO: Get the current kernel thread and switch to the user-level thread
 
     ulthread_context_switch(&t->context, NULL);
-
-    if(schedalgo == ROUNDROBIN){
-        // Round Robin
-    }else if(schedalgo == PRIORITY){
-        // Priority
-    }else if(schedalgo == FCFS){
-        // First Come First Serve
-    }
+    
+    enum ulthread_scheduling_algorithm scheduling_algorithm;
+    scheduling_algorithm = schedalgo;
 
 }
 
