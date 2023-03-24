@@ -17,7 +17,10 @@ struct ulthread {
   int killed;
   int xstate;
 
+  uint64 stack;
+
   struct context context;
+  uint64 args[4];
 };
 
 struct context {
