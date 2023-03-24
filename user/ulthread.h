@@ -20,7 +20,7 @@ struct ulthread {
   uint64 stack;
 
   struct context context;
-  uint64 args[4];
+  uint64 args[6];
 };
 
 struct context {

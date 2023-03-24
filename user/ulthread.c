@@ -40,14 +40,6 @@ void ulthread_yield(void) {
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultyield(tid: %d)\n", 0);
-
-    struct ulthread *p;
-    if (ulthread_create(p->context.ra, p->stack, p->args, p->priority)){
-        acquire(&p->lock);
-        p->state = RUNNABLE;
-        ulthread_schedule();
-        release(&p->lock);
-    }
 }
 
 /* Destroy thread */
