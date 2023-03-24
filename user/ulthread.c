@@ -15,7 +15,22 @@ int get_current_tid(void) {
 }
 
 /* Thread initialization */
-void ulthread_init(int schedalgo) {}
+void ulthread_init(int schedalgo) {
+
+    struct ulthread *t;
+    // TODO: Get the current kernel thread and switch to the user-level thread
+
+    ulthread_context_switch(&t->context, NULL);
+
+    if(schedalgo == ROUNDROBIN){
+        // Round Robin
+    }else if(schedalgo == PRIORITY){
+        // Priority
+    }else if(schedalgo == FCFS){
+        // First Come First Serve
+    }
+
+}
 
 /* Thread creation */
 bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
