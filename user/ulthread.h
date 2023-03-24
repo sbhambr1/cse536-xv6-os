@@ -8,6 +8,8 @@
 // create a data structure to hold the thread information
 struct ulthread {
 
+  struct spinlock lock;
+
   int tid;
   int priority;
   enum ulthread_state state;
@@ -34,6 +36,15 @@ struct context {
   uint64 s10;
   uint64 s11;
 };
+
+struct spinlock {
+  uint locked;       // Is the lock held?
+
+  // For debugging:
+  char *name;        // Name of lock.
+  struct cpu *cpu;   // The cpu holding the lock.
+};
+
 
 enum ulthread_state {
   FREE,
