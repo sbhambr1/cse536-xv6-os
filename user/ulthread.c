@@ -102,8 +102,13 @@ void ulthread_schedule(void) {
 /* Yield CPU time to some other thread. */
 void ulthread_yield(void) {
 
+    struct ulthread *t;
+    acqure(&t->lock);
+    t->state = YIELD;
+    release(&t->lock);
+
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultyield(tid: %d)\n", 0);
+    printf("[*] ultyield(tid: %d)\n", get_current_tid);
 }
 
 /* Destroy thread */
