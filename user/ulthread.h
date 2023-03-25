@@ -20,6 +20,7 @@ struct ulthread {
   struct ulthread *parent;
 
   uint64 stack;
+  uint64 ctime = r_time();
 
   struct context context;
   uint64 args[6];
@@ -49,6 +50,14 @@ struct spinlock {
   char *name;        // Name of lock.
   struct cpu *cpu;   // The cpu holding the lock.
 };
+
+static inline uint64
+r_time()
+{
+  uint64 x;
+  asm volatile("csrr %0, time" : "=r" (x) );
+  return x;
+}
 
 
 enum ulthread_state {
