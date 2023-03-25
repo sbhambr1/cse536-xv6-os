@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <stddef.h> 
 
+enum ulthread_scheduling_algorithm scheduling_algorithm;
+
 /* Get thread ID */
 int get_current_tid(void) {
     struct  ulthread *t;
@@ -22,10 +24,7 @@ void ulthread_init(int schedalgo) {
     // TODO: Get the current kernel thread and switch to the user-level thread
 
     ulthread_context_switch(&t->context, &t->parent->context);
-
-    enum ulthread_scheduling_algorithm scheduling_algorithm;
     scheduling_algorithm = schedalgo;
-
 }
 
 /* Thread creation */
@@ -53,7 +52,24 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
 
 /* Thread scheduler */
 void ulthread_schedule(void) {
-    
+
+    struct ulthread *t;
+
+    acqure(&t->lock);
+
+    for(int i = 0; i < MAXULTHREADS; i++){
+        
+        if(scheduling_algorithm == 0){
+            // Round Robin
+        }
+        else if(scheduling_algorithm == 1){
+            // Priority
+        }
+        else if(scheduling_algorithm == 2){
+            // FCFS
+        }
+    }    
+
     /* Add this statement to denote which thread-id is being scheduled next */
     printf("[*] ultschedule (next tid: %d)\n", 0);
 
