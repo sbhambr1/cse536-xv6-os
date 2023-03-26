@@ -62,7 +62,7 @@ void ulthread_schedule(void) {
     for(;;){
         if(scheduling_algorithm == 0){
             // Round Robin
-            for(int i = 0; i < MAXULTHREADS; i++){
+            for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
                 struct ulthread *newt;
                 if(t->state == RUNNABLE){
                     newt = t;
@@ -78,7 +78,7 @@ void ulthread_schedule(void) {
             struct ulthread *newt;
             struct ulthread *highest;
             //find the highest priority thread
-            for(int i = 0; i < MAXULTHREADS; i++){
+            for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
                 if(newt->priority < highest->priority && newt->state == RUNNABLE){
                     highest = newt;
                 }
@@ -90,7 +90,7 @@ void ulthread_schedule(void) {
         }
         else if(scheduling_algorithm == 2){
             // FCFS
-            for(int i = 0; i < MAXULTHREADS; i++){
+            for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
                 struct ulthread *newt;
                 if(t->ctime < newt->ctime && t->state == RUNNABLE){
                     newt = t;
