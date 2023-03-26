@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <stddef.h> 
 
+struct ulthread ulthread[MAXULTHREADS];
+
 enum ulthread_scheduling_algorithm scheduling_algorithm;
 
 /* Get thread ID */
@@ -121,6 +123,13 @@ void ulthread_yield(void) {
 }
 
 /* Destroy thread */
-void ulthread_destroy(void) {}
+void ulthread_destroy(void) {
 
-/* Get thread time */
+    struct ulthread *t;
+    acqure(&t->lock);
+    t->state = FREE;
+    release(&t->lock);
+
+    /* Please add thread-id instead of '0' here. */
+    printf("[*] ultdestroy(tid: %d)\n", get_current_tid);
+}
