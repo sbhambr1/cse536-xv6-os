@@ -66,6 +66,9 @@ void ulthread_schedule(void) {
                     newt = t;
                     ulthread_context_switch(&newt->context, &t->context);
                 }
+                if(t->state == YIELD){
+                    t->state = RUNNABLE;
+                }
             }
         }
         else if(scheduling_algorithm == 1){
@@ -78,6 +81,9 @@ void ulthread_schedule(void) {
                     highest = newt;
                 }
                 ulthread_context_switch(&highest->context, &t->context);
+                if(t->state == YIELD){
+                    t->state = RUNNABLE;
+                }
             }
         }
         else if(scheduling_algorithm == 2){
@@ -87,6 +93,9 @@ void ulthread_schedule(void) {
                 if(t->ctime < newt->ctime && t->state == RUNNABLE){
                     newt = t;
                     ulthread_context_switch(&newt->context, &t->context);
+                }
+                if(t->state == YIELD){
+                    t->state = RUNNABLE;
                 }
             }
         }
