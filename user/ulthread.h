@@ -5,22 +5,6 @@
 
 #define MAXULTHREADS 100
 
-// create a data structure to hold the thread information
-struct ulthread {
-
-  int tid;
-  int priority;
-  enum ulthread_state state;
-
-  struct ulthread *parent;
-
-  uint64 stack;
-  uint64 ctime;
-
-  struct context context;
-  uint64 args[6];
-};
-
 struct context {
   uint64 ra;
   uint64 sp;
@@ -38,23 +22,6 @@ struct context {
   uint64 s11;
 };
 
-struct spinlock {
-  uint locked;       // Is the lock held?
-
-  // For debugging:
-  char *name;        // Name of lock.
-  struct cpu *cpu;   // The cpu holding the lock.
-};
-
-static inline uint64
-r_time()
-{
-  uint64 x;
-  asm volatile("csrr %0, time" : "=r" (x) );
-  return x;
-};
-
-
 enum ulthread_state {
   FREE,
   RUNNABLE,
@@ -65,6 +32,19 @@ enum ulthread_scheduling_algorithm {
   ROUNDROBIN,   
   PRIORITY,     
   FCFS,         // first-come-first serve
+};
+
+// create a data structure to hold the thread information
+struct ulthread {
+
+  int tid;
+  int priority;
+  enum ulthread_state state;
+  struct ulthread *parent;
+  uint64 stack;
+  uint64 ctime;
+  struct context context;
+  uint64 args[6];
 };
 
 #endif
