@@ -65,53 +65,56 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
 void ulthread_schedule(void) {
 
     struct ulthread *t;
+    struct ulthread *newt;
 
-    for(;;){
-        if(scheduling_algorithm == 0){
+    if(scheduling_algorithm == 0){
             // Round Robin
-            for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
-                struct ulthread *newt;
-                if(t->state == RUNNABLE){
-                    newt = t;
-                    ulthread_context_switch(&newt->context, &t->context);
-                }
-                if(t->state == YIELD){
-                    t->state = RUNNABLE;
-                }
+        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+            if(t->state == RUNNABLE){
+                newt = t;
+                ulthread_context_switch(&newt->context, &t->context);
+            }
+            if(t->state == YIELD){
+                t->state = RUNNABLE;
             }
         }
-        else if(scheduling_algorithm == 1){
-            // Priority
-            struct ulthread *newt;
-            struct ulthread *highest;
-            //find the highest priority thread
-            for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
-                if(newt->priority < highest->priority && newt->state == RUNNABLE){
-                    highest = newt;
-                }
-                ulthread_context_switch(&highest->context, &t->context);
-                if(t->state == YIELD){
-                    t->state = RUNNABLE;
-                }
+    }
+    else if(scheduling_algorithm == 1){ //TODO: Fix this
+        // Priority
+
+        //find the first RUNNABLE thread
+        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+            if(t->state == RUNNABLE){
+                newt = t;
+                break;
             }
         }
-        else if(scheduling_algorithm == 2){
+        //find the highest priority thread among the RUNNABLE threads
+        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+            if(t->priority > newt->priority && t->state == RUNNABLE){
+                newt = t;
+            }
+            if(t->state == YIELD){
+                t->state = RUNNABLE;
+            }
+        }
+        ulthread_context_switch(&newt->context, &t->context);
+    }
+    else if(scheduling_algorithm == 2){
             // FCFS
-            for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
-                struct ulthread *newt;
-                if(t->ctime < newt->ctime && t->state == RUNNABLE){
-                    newt = t;
-                    ulthread_context_switch(&newt->context, &t->context);
-                }
-                if(t->state == YIELD){
-                    t->state = RUNNABLE;
-                }
+        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+            if(t->ctime < newt->ctime && t->state == RUNNABLE){
+                newt = t;
+                ulthread_context_switch(&newt->context, &t->context);
+            }
+            if(t->state == YIELD){
+                t->state = RUNNABLE;
             }
         }
     }
 
     /* Add this statement to denote which thread-id is being scheduled next */
-    printf("[*] ultschedule (next tid: %d)\n", get_current_tid());
+    printf("[*] ultschedule (next tid: %d)\n", newt->tid);
 
 }
 
