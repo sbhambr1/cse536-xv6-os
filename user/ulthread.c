@@ -15,20 +15,20 @@ enum ulthread_scheduling_algorithm scheduling_algorithm;
 
 /* Get thread ID */
 int get_current_tid(void) {
-    struct  ulthread *t;
-    return t->tid;
+    return 0;
 }
 
 /* Thread initialization */
 void ulthread_init(int schedalgo) {
 
     struct ulthread *t;
-    // Initialize the thread data structure and set the state to FREE and initialize the ids from 0 to MAXULTHREADS
-    // Mark the first thread as the scheduler thread and set its state to RUNNABLE
+    int i = 0;
+    // Initialize the thread data structure and set the state to FREE and initialize the ids from 1 to MAXULTHREADS
     for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
-        t->tid = t - ulthread;
         t->state = FREE;
+        t->tid = i++;
     }
+    // Mark the first thread as the scheduler thread and set its state to RUNNABLE
     ulthread[0].state = RUNNABLE;
 
     scheduling_algorithm = schedalgo;
@@ -38,16 +38,21 @@ void ulthread_init(int schedalgo) {
 bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
 
     struct ulthread *t;
-    t->context.ra = start;
-    t->context.sp = stack;
-    for (int i = 0; i < 6; i++) {
-        t->args[i] = args[i];
+
+    // Find a free thread slot and initialize it
+    for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+        if(t->state == FREE){
+            t->state = RUNNABLE;
+            break;
+        }
     }
-    t->priority = priority;
-    memset(&t->context, 0, sizeof(t->context));
+    if(t == &ulthread[MAXULTHREADS]){
+        return false;
+    }
+
 
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
+    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", t->tid, start, stack);
 
     if(t->state == RUNNABLE){
         return true;        
