@@ -23,10 +23,13 @@ int get_current_tid(void) {
 void ulthread_init(int schedalgo) {
 
     struct ulthread *t;
-
-    for(t=ulthread; t<&ulthread[MAXULTHREADS]; t++){
+    // Initialize the thread data structure and set the state to FREE and initialize the ids from 0 to MAXULTHREADS
+    // Mark the first thread as the scheduler thread and set its state to RUNNABLE
+    for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+        t->tid = t - ulthread;
         t->state = FREE;
     }
+    ulthread[0].state = RUNNABLE;
 
     scheduling_algorithm = schedalgo;
 }
