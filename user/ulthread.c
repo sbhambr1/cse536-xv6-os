@@ -41,12 +41,10 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
         t->args[i] = args[i];
     }
     t->priority = priority;
+    memset(&t->context, 0, sizeof(t->context));
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
-    
-    //TODO: save the context of the current thread
-    ulthread_context_switch(&t->context, &t->parent->context);
 
     if(t->state == RUNNABLE){
         return true;        

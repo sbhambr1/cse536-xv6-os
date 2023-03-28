@@ -11,9 +11,6 @@ struct ulthread {
   int tid;
   int priority;
   enum ulthread_state state;
-  void *chan;
-  int killed;
-  int xstate;
 
   struct ulthread *parent;
 
