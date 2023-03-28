@@ -23,19 +23,16 @@ int get_current_tid(void) {
 void ulthread_init(int schedalgo) {
 
     struct ulthread *t;
-    // TODO: Get the current kernel thread and switch to the user-level thread
+
     for(t=ulthread; t<&ulthread[MAXULTHREADS]; t++){
         t->state = FREE;
     }
 
-    ulthread_context_switch(&t->context, &t->parent->context);
     scheduling_algorithm = schedalgo;
 }
 
 /* Thread creation */
 bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
-    /* Please add thread-id instead of '0' here. */
-    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
 
     struct ulthread *t;
     t->context.ra = start;
@@ -44,6 +41,9 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
         t->args[i] = args[i];
     }
     t->priority = priority;
+
+    /* Please add thread-id instead of '0' here. */
+    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
     
     //TODO: save the context of the current thread
     ulthread_context_switch(&t->context, &t->parent->context);
