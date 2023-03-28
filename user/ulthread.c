@@ -10,6 +10,7 @@
 #include <stddef.h> 
 
 struct ulthread ulthread[MAXULTHREADS];
+struct ulthread *scheduler_thread = &ulthread[0];
 
 enum ulthread_scheduling_algorithm scheduling_algorithm;
 
@@ -29,7 +30,8 @@ void ulthread_init(int schedalgo) {
         t->tid = i++;
     }
     // Mark the first thread as the scheduler thread and set its state to RUNNABLE
-    ulthread[0].state = RUNNABLE;
+    scheduler_thread->state = RUNNABLE;
+    scheduler_thread->tid = 0;
 
     scheduling_algorithm = schedalgo;
 }
@@ -40,7 +42,7 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
     struct ulthread *t;
 
     // Find a free thread slot and initialize it
-    for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+    for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
         if(t->state == FREE){
             t->state = RUNNABLE;
             break;
@@ -49,7 +51,6 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
     if(t == &ulthread[MAXULTHREADS]){
         return false;
     }
-
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", t->tid, start, stack);
@@ -68,13 +69,13 @@ void ulthread_schedule(void) {
     struct ulthread *newt;
 
     if(scheduling_algorithm == 0){
-            // Round Robin
-        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+        // Round Robin
+        for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
             if(t->state == RUNNABLE){
                 newt = t;
-                ulthread_context_switch(&newt->context, &t->context);
+                break;
             }
-            if(t->state == YIELD){
+            else if(t->state == YIELD){
                 t->state = RUNNABLE;
             }
         }
@@ -83,14 +84,14 @@ void ulthread_schedule(void) {
         // Priority
 
         //find the first RUNNABLE thread
-        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+        for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
             if(t->state == RUNNABLE){
                 newt = t;
                 break;
             }
         }
         //find the highest priority thread among the RUNNABLE threads
-        for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
+        for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
             if(t->priority > newt->priority && t->state == RUNNABLE){
                 newt = t;
             }
@@ -116,6 +117,8 @@ void ulthread_schedule(void) {
     /* Add this statement to denote which thread-id is being scheduled next */
     printf("[*] ultschedule (next tid: %d)\n", newt->tid);
 
+    // Switch between thread contexts from the scheduler thread to the new thread
+    ulthread_context_switch(&scheduler_thread->context, &newt->context);
 }
 
 /* Yield CPU time to some other thread. */
@@ -125,7 +128,9 @@ void ulthread_yield(void) {
     t->state = YIELD;
 
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultyield(tid: %d)\n", get_current_tid);
+    printf("[*] ultyield(tid: %d)\n", t->tid);
+
+    ulthread_schedule();
 }
 
 /* Destroy thread */
@@ -135,5 +140,7 @@ void ulthread_destroy(void) {
     t->state = FREE;
 
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultdestroy(tid: %d)\n", get_current_tid);
+    printf("[*] ultdestroy(tid: %d)\n", t->tid);
+
+    ulthread_schedule();
 }
