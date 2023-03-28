@@ -8,8 +8,6 @@
 // create a data structure to hold the thread information
 struct ulthread {
 
-  struct spinlock lock;
-
   int tid;
   int priority;
   enum ulthread_state state;
@@ -20,7 +18,7 @@ struct ulthread {
   struct ulthread *parent;
 
   uint64 stack;
-  uint64 ctime = r_time();
+  uint64 ctime;
 
   struct context context;
   uint64 args[6];

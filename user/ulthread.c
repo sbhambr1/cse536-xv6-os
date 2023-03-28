@@ -60,8 +60,6 @@ void ulthread_schedule(void) {
 
     struct ulthread *t;
 
-    acqure(&t->lock);
-
     for(;;){
         if(scheduling_algorithm == 0){
             // Round Robin
@@ -106,8 +104,6 @@ void ulthread_schedule(void) {
         }
     }
 
-    release(&t->lock);
-
     /* Add this statement to denote which thread-id is being scheduled next */
     printf("[*] ultschedule (next tid: %d)\n", get_current_tid());
 
@@ -117,9 +113,7 @@ void ulthread_schedule(void) {
 void ulthread_yield(void) {
 
     struct ulthread *t;
-    acqure(&t->lock);
     t->state = YIELD;
-    release(&t->lock);
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultyield(tid: %d)\n", get_current_tid);
@@ -129,9 +123,7 @@ void ulthread_yield(void) {
 void ulthread_destroy(void) {
 
     struct ulthread *t;
-    acqure(&t->lock);
     t->state = FREE;
-    release(&t->lock);
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultdestroy(tid: %d)\n", get_current_tid);
