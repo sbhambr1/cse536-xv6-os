@@ -24,6 +24,9 @@ void ulthread_init(int schedalgo) {
 
     struct ulthread *t;
     // TODO: Get the current kernel thread and switch to the user-level thread
+    for(t=ulthread; t<&ulthread[MAXULTHREADS]; t++){
+        t->state = FREE;
+    }
 
     ulthread_context_switch(&t->context, &t->parent->context);
     scheduling_algorithm = schedalgo;
