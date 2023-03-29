@@ -11,12 +11,13 @@
 
 struct ulthread ulthread[MAXULTHREADS];
 struct ulthread *scheduler_thread = &ulthread[0];
+struct ulthread *current_thread;
 
 enum ulthread_scheduling_algorithm scheduling_algorithm;
 
 /* Get thread ID */
 int get_current_tid(void) {
-    return 0;
+    return current_thread->tid;
 }
 
 /* Thread initialization */
@@ -32,6 +33,8 @@ void ulthread_init(int schedalgo) {
     // Mark the first thread as the scheduler thread and set its state to RUNNABLE
     scheduler_thread->state = RUNNABLE;
     scheduler_thread->tid = 0;
+    // Set the current thread to the scheduler thread
+    current_thread = scheduler_thread;
 
     scheduling_algorithm = schedalgo;
 }
@@ -45,6 +48,12 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
     for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
         if(t->state == FREE){
             t->state = RUNNABLE;
+            t->context.ra = start;
+            t->context.sp = stack;
+            for(int i = 0; i < 6; i++){
+                t->args[i] = args[i];
+            }
+            t->priority = priority;
             break;
         }
     }
@@ -52,8 +61,10 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
         return false;
     }
 
+    current_thread = t;
+
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", t->tid, start, stack);
+    printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
 
     if(t->state == RUNNABLE){
         return true;        
@@ -99,14 +110,12 @@ void ulthread_schedule(void) {
                 t->state = RUNNABLE;
             }
         }
-        ulthread_context_switch(&newt->context, &t->context);
     }
     else if(scheduling_algorithm == 2){
             // FCFS
         for(t = ulthread; t < &ulthread[MAXULTHREADS]; t++){
             if(t->ctime < newt->ctime && t->state == RUNNABLE){
                 newt = t;
-                ulthread_context_switch(&newt->context, &t->context);
             }
             if(t->state == YIELD){
                 t->state = RUNNABLE;
@@ -114,8 +123,10 @@ void ulthread_schedule(void) {
         }
     }
 
+    current_thread = newt;
+
     /* Add this statement to denote which thread-id is being scheduled next */
-    printf("[*] ultschedule (next tid: %d)\n", newt->tid);
+    printf("[*] ultschedule (next tid: %d)\n", get_current_tid());
 
     // Switch between thread contexts from the scheduler thread to the new thread
     ulthread_context_switch(&scheduler_thread->context, &newt->context);
@@ -136,11 +147,18 @@ void ulthread_yield(void) {
 /* Destroy thread */
 void ulthread_destroy(void) {
 
-    struct ulthread *t;
-    t->state = FREE;
+    // find the current running thread and mark it as FREE
+    current_thread->state = FREE;
 
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultdestroy(tid: %d)\n", t->tid);
+    printf("[*] ultdestroy(tid: %d)\n", get_current_tid());
 
-    ulthread_schedule();
+    struct ulthread *t;
+    for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
+        if(t->state == RUNNABLE){
+            ulthread_schedule();
+        }
+    }
+
+    ulthread_context_switch(&current_thread->context, &scheduler_thread->context);
 }
