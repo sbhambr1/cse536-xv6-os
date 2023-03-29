@@ -47,4 +47,13 @@ struct ulthread {
   uint64 args[6];
 };
 
+// machine-mode cycle counter
+static inline uint64
+ctime()
+{
+  uint64 x;
+  asm volatile("csrr %0, time" : "=r" (x) );
+  return x;
+}
+
 #endif
