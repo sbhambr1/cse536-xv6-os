@@ -84,7 +84,7 @@ void ulthread_schedule(void) {
         for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
             if(t->state == RUNNABLE){
                 newt = t;
-                break;
+                continue;;
             }
             else if(t->state == YIELD){
                 t->state = RUNNABLE;
@@ -98,7 +98,7 @@ void ulthread_schedule(void) {
         for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
             if(t->state == RUNNABLE){
                 newt = t;
-                break;
+                continue;;
             }
         }
         //find the highest priority thread among the RUNNABLE threads
@@ -135,11 +135,10 @@ void ulthread_schedule(void) {
 /* Yield CPU time to some other thread. */
 void ulthread_yield(void) {
 
-    struct ulthread *t;
-    t->state = YIELD;
+    current_thread->state = YIELD;
 
     /* Please add thread-id instead of '0' here. */
-    printf("[*] ultyield(tid: %d)\n", t->tid);
+    printf("[*] ultyield(tid: %d)\n", get_current_tid());
 
     ulthread_schedule();
 }
