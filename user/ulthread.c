@@ -50,9 +50,13 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
             t->state = RUNNABLE;
             t->context.ra = start;
             t->context.sp = stack;
-            for(int i = 0; i < 6; i++){
-                t->args[i] = args[i];
-            }
+            t->context.s0 = args[0];
+            t->context.s1 = args[1];
+            t->context.s2 = args[2];
+            t->context.s3 = args[3];
+            t->context.s4 = args[4];
+            t->context.s5 = args[5];
+            t->ctime = ctime();
             t->priority = priority;
             break;
         }
@@ -91,7 +95,7 @@ void ulthread_schedule(void) {
             }
         }
     }
-    else if(scheduling_algorithm == 1){ //TODO: Fix this
+    else if(scheduling_algorithm == 1){
         // Priority
 
         //find the first RUNNABLE thread
