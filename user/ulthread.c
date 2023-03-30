@@ -70,11 +70,7 @@ bool ulthread_create(uint64 start, uint64 stack, uint64 args[], int priority) {
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultcreate(tid: %d, ra: %p, sp: %p)\n", get_current_tid(), start, stack);
 
-    if(t->state == RUNNABLE){
-        return true;        
-    }
-
-    return false;
+    return true;
 }
 
 /* Thread scheduler */
