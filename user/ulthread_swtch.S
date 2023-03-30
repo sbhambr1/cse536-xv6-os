@@ -31,4 +31,11 @@ ulthread_context_switch:
         ld s10, 96(a1)
         ld s11, 104(a1)
 
+        add a0, s0, 0
+        add a1, s1, 0
+        add a2, s2, 0
+        add a3, s3, 0
+        add a4, s4, 0
+        add a5, s5, 0
+
         ret

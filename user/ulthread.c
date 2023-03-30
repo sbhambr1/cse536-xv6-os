@@ -79,6 +79,18 @@ void ulthread_schedule(void) {
     struct ulthread *t;
     struct ulthread *newt;
 
+    for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
+        if(t->state == RUNNABLE){
+            ulthread_schedule_all();
+        }   
+    } 
+}
+
+void ulthread_schedule_all(void){
+
+    struct ulthread *t;
+    struct ulthread *newt;
+
     if(scheduling_algorithm == 0){
         // Round Robin
         for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
@@ -130,6 +142,7 @@ void ulthread_schedule(void) {
 
     // Switch between thread contexts from the scheduler thread to the new thread
     ulthread_context_switch(&scheduler_thread->context, &newt->context);
+
 }
 
 /* Yield CPU time to some other thread. */
@@ -140,7 +153,7 @@ void ulthread_yield(void) {
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultyield(tid: %d)\n", get_current_tid());
 
-    ulthread_schedule();
+    ulthread_context_switch(&current_thread->context, &scheduler_thread->context);
 }
 
 /* Destroy thread */
@@ -151,13 +164,6 @@ void ulthread_destroy(void) {
 
     /* Please add thread-id instead of '0' here. */
     printf("[*] ultdestroy(tid: %d)\n", get_current_tid());
-
-    struct ulthread *t;
-    for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
-        if(t->state == RUNNABLE){
-            ulthread_schedule();
-        }
-    }
 
     ulthread_context_switch(&current_thread->context, &scheduler_thread->context);
 }
