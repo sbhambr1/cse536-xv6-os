@@ -108,15 +108,17 @@ void ulthread_schedule_all(void){
 
         //find the first RUNNABLE thread
         for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
-            if(t->state == RUNNABLE){
-                newt = t;
-                continue;;
+            if(t->state != RUNNABLE){
+                continue;
             }
         }
+        newt = t;
+
         //find the highest priority thread among the RUNNABLE threads
-        for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
-            if(t->priority > newt->priority && t->state == RUNNABLE){
-                newt = t;
+        struct ulthread *temp;
+        for(temp = &ulthread[1]; temp < &ulthread[MAXULTHREADS]; temp++){
+            if((temp->state == RUNNABLE) && (temp->priority > newt->priority)){
+                newt = temp;
             }
             if(t->state == YIELD){
                 t->state = RUNNABLE;
