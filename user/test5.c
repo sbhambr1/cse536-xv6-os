@@ -55,13 +55,9 @@ main(int argc, char *argv[])
     for (int i = 0; i < 3; i++)
         ulthread_create((uint64) ul_start_func, (uint64) (stacks+((i+1)*PGSIZE)), args, i%5);
 
-    printf ("Current clock cyles are: %d\n", ctime());
-
     /* Schedule all of the threads */
-    ulthread_schedule_all();
+    ulthread_schedule();
 
-    printf ("Current clock cyles are: %d\n", ctime());
-
-    printf("[*] User-Level Threading Test #5 (Arguments Checking) Complete.\n");
+    printf("[*] User-Level Threading Test #5 (PRIO Collaborative) Complete.\n");
     return 0;
 }
