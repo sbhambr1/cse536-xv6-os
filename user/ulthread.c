@@ -15,6 +15,8 @@ struct ulthread *current_thread;
 
 enum ulthread_scheduling_algorithm scheduling_algorithm;
 
+int prev_tid = 0;
+
 /* Get thread ID */
 int get_current_tid(void) {
     return current_thread->tid;
@@ -94,12 +96,13 @@ void ulthread_schedule_all(void){
 
     if(scheduling_algorithm == 0){
         // Round Robin
-        for(t = &ulthread[1]; t < &ulthread[MAXULTHREADS]; t++){
+        for(t = &ulthread[prev_tid+1]; t < &ulthread[MAXULTHREADS]; t++){
             if(t->state == RUNNABLE){
                 newt = t;
+                prev_tid = newt->tid;
                 break;
             }
-            else if(t->state == YIELD){
+            if(t->state == YIELD){
                 t->state = RUNNABLE;
             }
         }
