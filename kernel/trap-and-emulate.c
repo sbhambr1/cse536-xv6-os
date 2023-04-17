@@ -67,8 +67,19 @@ struct vm_virtual_state {
     int priv; // 0 = U, 1 = S, 3 = M
 };
 
-// Initialize the virtual state of the VM's privileged registers
+void trap_and_emulate(void) {
+    /* Comes here when a VM tries to execute a supervisor instruction. */
+
+    uint32 op       = 0;
+    uint32 rd       = 0;
+    uint32 rs1      = 0;
+    uint32 upper    = 0;
+
+    printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
+}
+
 void trap_and_emulate_init(void) {
+    /* Create and initialize all state for the VM */
     // User trap setup
     struct vm_reg ustatus = {.code = 0x000, .mode = 0, .val = 0};
     struct vm_reg uie = {.code = 0x004, .mode = 0, .val = 0};
@@ -119,19 +130,4 @@ void trap_and_emulate_init(void) {
 
     // Current execution privilege level
     int priv = 3; // 0 = U, 1 = S, 3 = M
-}
-
-void trap_and_emulate(void) {
-    /* Comes here when a VM tries to execute a supervisor instruction. */
-
-    uint32 op       = 0;
-    uint32 rd       = 0;
-    uint32 rs1      = 0;
-    uint32 upper    = 0;
-
-    printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
-}
-
-void trap_and_emulate_init(void) {
-    /* Create and initialize all state for the VM */
 }
