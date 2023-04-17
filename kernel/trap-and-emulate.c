@@ -67,6 +67,61 @@ struct vm_virtual_state {
     int priv; // 0 = U, 1 = S, 3 = M
 };
 
+// Initialize the virtual state of the VM's privileged registers
+
+void trap_and_emulate_init(void) {
+    // User trap setup
+    struct vm_reg ustatus = {0, 0, 0};
+    struct vm_reg uie = {0, 0, 0};
+    struct vm_reg utvec = {0, 0, 0};
+
+    // User trap handling
+    struct vm_reg uscratch = {0, 0, 0};
+    struct vm_reg uepc = {0, 0, 0};
+    struct vm_reg ucause = {0, 0, 0};
+    struct vm_reg utval = {0, 0, 0};
+    struct vm_reg uip = {0, 0, 0};
+
+    // Supervisor trap setup
+    struct vm_reg sstatus = {0, 0, 0};
+    struct vm_reg sedeleg = {0, 0, 0};
+    struct vm_reg sideleg = {0, 0, 0};
+    struct vm_reg sie = {0, 0, 0};
+    struct vm_reg stvec = {0, 0, 0};
+    struct vm_reg scounteren = {0, 0, 0};
+
+    // Supervisor page table register
+    struct vm_reg satp = {0, 0, 0};
+
+    // Machine information registers
+    struct vm_reg mvendorid = {0, 0, 0};
+    struct vm_reg marchid = {0, 0, 0};
+    struct vm_reg mimpid = {0, 0, 0};
+    struct vm_reg mhartid = {0, 0, 0};
+
+    // Machine trap setup registers
+    struct vm_reg mstatus = {0, 0, 0};
+    struct vm_reg misa = {0, 0, 0};
+    struct vm_reg medeleg = {0, 0, 0};
+    struct vm_reg mideleg = {0, 0, 0};
+    struct vm_reg mie = {0, 0, 0};
+    struct vm_reg mtvec = {0, 0, 0};
+    struct vm_reg mcounteren = {0, 0, 0};
+    struct vm_reg mstatush = {0, 0, 0};
+
+    // Machine trap handling registers
+    struct vm_reg mscratch = {0, 0, 0};
+    struct vm_reg mepc = {0, 0, 0};
+    struct vm_reg mcause = {0, 0, 0};
+    struct vm_reg mtval = {0, 0, 0};
+    struct vm_reg mip = {0, 0, 0};
+    struct vm_reg mtinst = {0, 0, 0};
+    struct vm_reg mtval2 = {0, 0, 0};
+
+    // Current execution privilege level
+    int priv = 3; // 0 = U, 1 = S, 3 = M
+}
+
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
 
