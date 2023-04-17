@@ -64,7 +64,7 @@ struct vm_virtual_state {
     struct vm_reg mtval2;
 
     // Current execution privilege level
-    int priv; // 0 = U, 1 = S, 3 = M
+    int priv; // 0 = U, 1 = S, 2 = M
 };
 
 void trap_and_emulate(void) {
@@ -80,54 +80,56 @@ void trap_and_emulate(void) {
 
 void trap_and_emulate_init(void) {
     /* Create and initialize all state for the VM */
+    struct vm_virtual_state *vms = (struct vm_virtual_state *)kalloc();
+
     // User trap setup
-    struct vm_reg ustatus = {.code = 0x000, .mode = 0, .val = 0};
-    struct vm_reg uie = {.code = 0x004, .mode = 0, .val = 0};
-    struct vm_reg utvec = {.code = 0x005, .mode = 0, .val = 0};
+    vms->ustatus = (struct vm_reg){.code = 0x000, .mode = 0, .val = 0};
+    vms->uie = (struct vm_reg){.code = 0x004, .mode = 0, .val = 0};
+    vms->utvec = (struct vm_reg){.code = 0x005, .mode = 0, .val = 0};
 
     // User trap handling
-    struct vm_reg uscratch = {.code = 0x040, .mode = 0, .val = 0};
-    struct vm_reg uepc = {.code = 0x041, .mode = 0, .val = 0};
-    struct vm_reg ucause = {.code = 0x042, .mode = 0, .val = 0};
-    struct vm_reg utval = {.code = 0x043, .mode = 0, .val = 0};
-    struct vm_reg uip = {.code = 0x044, .mode = 0, .val = 0};
+    vms->uscratch = (struct vm_reg){.code = 0x040, .mode = 0, .val = 0};
+    vms->uepc = (struct vm_reg){.code = 0x041, .mode = 0, .val = 0};
+    vms->ucause = (struct vm_reg){.code = 0x042, .mode = 0, .val = 0};
+    vms->utval = (struct vm_reg){.code = 0x043, .mode = 0, .val = 0};
+    vms->uip = (struct vm_reg){.code = 0x044, .mode = 0, .val = 0};
 
     // Supervisor trap setup
-    struct vm_reg sstatus = {.code = 0x100, .mode = 1, .val = 0};
-    struct vm_reg sedeleg = {.code = 0x102, .mode = 1, .val = 0};
-    struct vm_reg sideleg = {.code = 0x103, .mode = 1, .val = 0};
-    struct vm_reg sie = {.code = 0x104, .mode = 1, .val = 0};
-    struct vm_reg stvec = {.code = 0x105, .mode = 1, .val = 0};
-    struct vm_reg scounteren = {.code = 0x106, .mode = 1, .val = 0};
+    vms->sstatus = (struct vm_reg){.code = 0x100, .mode = 1, .val = 0};
+    vms->sedeleg = (struct vm_reg){.code = 0x102, .mode = 1, .val = 0};
+    vms->sideleg = (struct vm_reg){.code = 0x103, .mode = 1, .val = 0};
+    vms->sie = (struct vm_reg){.code = 0x104, .mode = 1, .val = 0};
+    vms->stvec = (struct vm_reg){.code = 0x105, .mode = 1, .val = 0};
+    vms->scounteren = (struct vm_reg){.code = 0x106, .mode = 1, .val = 0};
 
     // Supervisor page table register
-    struct vm_reg satp = {.code = 0x180, .mode = 1, .val = 0};
+    vms->satp = (struct vm_reg){.code = 0x180, .mode = 1, .val = 0};
 
     // Machine information registers
-    struct vm_reg mvendorid = {.code = 0xF11, .mode = 2, .val = 637365353336};
-    struct vm_reg marchid = {.code = 0xF12, .mode = 2, .val = 0};
-    struct vm_reg mimpid = {.code = 0xF13, .mode = 2, .val = 0};
-    struct vm_reg mhartid = {.code = 0xF14, .mode = 2, .val = 0};
+    vms->mvendorid = (struct vm_reg){.code = 0xF11, .mode = 2, .val = 637365353336};
+    vms->marchid = (struct vm_reg){.code = 0xF12, .mode = 2, .val = 0};
+    vms->mimpid = (struct vm_reg){.code = 0xF13, .mode = 2, .val = 0};
+    vms->mhartid = (struct vm_reg){.code = 0xF14, .mode = 2, .val = 0};
 
     // Machine trap setup registers
-    struct vm_reg mstatus = {.code = 0x300, .mode = 2, .val = 0};
-    struct vm_reg misa = {.code = 0x301, .mode = 2, .val = 0};
-    struct vm_reg medeleg = {.code = 0x302, .mode = 2, .val = 0};
-    struct vm_reg mideleg = {.code = 0x303, .mode = 2, .val = 0};
-    struct vm_reg mie = {.code = 0x304, .mode = 2, .val = 0};
-    struct vm_reg mtvec = {.code = 0x305, .mode = 2, .val = 0};
-    struct vm_reg mcounteren = {.code = 0x306, .mode = 2, .val = 0};
-    struct vm_reg mstatush = {.code = 0x310, .mode = 2, .val = 0};
+    vms->mstatus = (struct vm_reg){.code = 0x300, .mode = 2, .val = 0};
+    vms->misa = (struct vm_reg){.code = 0x301, .mode = 2, .val = 0};
+    vms->medeleg = (struct vm_reg){.code = 0x302, .mode = 2, .val = 0};
+    vms->mideleg = (struct vm_reg){.code = 0x303, .mode = 2, .val = 0};
+    vms->mie = (struct vm_reg){.code = 0x304, .mode = 2, .val = 0};
+    vms->mtvec = (struct vm_reg){.code = 0x305, .mode = 2, .val = 0};
+    vms->mcounteren = (struct vm_reg){.code = 0x306, .mode = 2, .val = 0};
+    vms->mstatush = (struct vm_reg){.code = 0x310, .mode = 2, .val = 0};
 
     // Machine trap handling registers
-    struct vm_reg mscratch = {.code = 0x340, .mode = 2, .val = 0};
-    struct vm_reg mepc = {.code = 0x341, .mode = 2, .val = 0};
-    struct vm_reg mcause = {.code = 0x342, .mode = 2, .val = 0};
-    struct vm_reg mtval = {.code = 0x343, .mode = 2, .val = 0};
-    struct vm_reg mip = {.code = 0x344, .mode = 2, .val = 0};
-    struct vm_reg mtinst = {.code = 0x34A, .mode = 2, .val = 0};
-    struct vm_reg mtval2 = {.code = 0x34B, .mode = 2, .val = 0};
+    vms->mscratch = (struct vm_reg){.code = 0x340, .mode = 2, .val = 0};
+    vms->mepc = (struct vm_reg){.code = 0x341, .mode = 2, .val = 0};
+    vms->mcause = (struct vm_reg){.code = 0x342, .mode = 2, .val = 0};
+    vms->mtval = (struct vm_reg){.code = 0x343, .mode = 2, .val = 0};
+    vms->mip = (struct vm_reg){.code = 0x344, .mode = 2, .val = 0};
+    vms->mtinst = (struct vm_reg){.code = 0x34A, .mode = 2, .val = 0};
+    vms->mtval2 = (struct vm_reg){.code = 0x34B, .mode = 2, .val = 0};
 
     // Current execution privilege level
-    int priv = 3; // 0 = U, 1 = S, 3 = M
+    vms->priv = 2; // 0 = U, 1 = S, 2 = M
 }
