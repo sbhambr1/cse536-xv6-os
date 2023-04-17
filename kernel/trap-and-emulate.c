@@ -16,15 +16,55 @@ struct vm_reg {
 // Keep the virtual state of the VM's privileged registers
 struct vm_virtual_state {
     // User trap setup
-    // User trap handling
-    // Supervisor trap setup
-    // User trap handling
-    // Supervisor page table register
-    // Machine information registers
-    // Machine trap setup registers
-    // Machine trap handling registers
+    struct vm_reg ustatus;
+    struct vm_reg uie;
+    struct vm_reg utvec;
 
-    struct vm_reg tmp;
+    // User trap handling
+    struct vm_reg uscratch;
+    struct vm_reg uepc;
+    struct vm_reg ucause;
+    struct vm_reg utval;
+    struct vm_reg uip;
+
+    // Supervisor trap setup
+    struct vm_reg sstatus;
+    struct vm_reg sedeleg;
+    struct vm_reg sideleg;
+    struct vm_reg sie;
+    struct vm_reg stvec;
+    struct vm_reg scounteren;
+
+    // Supervisor page table register
+    struct vm_reg satp;
+
+    // Machine information registers
+    struct vm_reg mvendorid;
+    struct vm_reg marchid;
+    struct vm_reg mimpid;
+    struct vm_reg mhartid;
+
+    // Machine trap setup registers
+    struct vm_reg mstatus;
+    struct vm_reg misa;
+    struct vm_reg medeleg;
+    struct vm_reg mideleg;
+    struct vm_reg mie;
+    struct vm_reg mtvec;
+    struct vm_reg mcounteren;
+    struct vm_reg mstatush;
+
+    // Machine trap handling registers
+    struct vm_reg mscratch;
+    struct vm_reg mepc;
+    struct vm_reg mcause;
+    struct vm_reg mtval;
+    struct vm_reg mip;
+    struct vm_reg mtinst;
+    struct vm_reg mtval2;
+
+    // Current execution privilege level
+    int priv; // 0 = U, 1 = S, 3 = M
 };
 
 void trap_and_emulate(void) {
