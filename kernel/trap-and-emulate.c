@@ -75,6 +75,19 @@ void trap_and_emulate(void) {
     uint32 rs1      = 0;
     uint32 upper    = 0;
 
+    // Read the 32-bit instruction from the VM
+    // opcode is in bits 6-0 and save in op
+    // rd is in bits 11-7
+    // rs1 is in bits 19-15
+    // upper is in bits 31-20
+
+    uint32 instr = r_sstatus();
+    op = instr & 0x7F;
+    rd = (instr >> 7) & 0x1F;
+    rs1 = (instr >> 15) & 0x1F;
+    upper = (instr >> 20) & 0xFFF;
+
+
     printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
 }
 
@@ -132,4 +145,11 @@ void trap_and_emulate_init(void) {
 
     // Current execution privilege level
     vms->priv = 2; // 0 = U, 1 = S, 2 = M
+
+    // Set the trap handler
+    struct proc *p = myproc();
+    if (strncmp(p->name, "vm-", 3) == 0) {
+        trap_and_emulate();
+    }
+    
 }
