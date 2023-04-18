@@ -87,7 +87,6 @@ void trap_and_emulate(void) {
     rs1 = (instr >> 15) & 0x1F;
     upper = (instr >> 20) & 0xFFF;
 
-
     printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
 }
 
@@ -146,10 +145,18 @@ void trap_and_emulate_init(void) {
     // Current execution privilege level
     vms->priv = 2; // 0 = U, 1 = S, 2 = M
 
-    // Set the trap handler
-    struct proc *p = myproc();
-    if (strncmp(p->name, "vm-", 3) == 0) {
-        trap_and_emulate();
-    }
+    // boot the VM in the M mode by setting 11th and 12th bit of mstatus to 1
+    vms->mstatus.val = vms->mstatus.val | (1 << 11) | (1 << 12);
+
+
+    // // Set the trap handler
+    // struct proc *p = myproc();
+    // printf("[PI] Setting trap handler for %s\n");
+    
+    // if (strncmp(p->name, "vm-", 3) == 0) {
+    //     trap_and_emulate();
+    // }
+
+    // trap_and_emulate();
     
 }

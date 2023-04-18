@@ -55,6 +55,9 @@ usertrap(void)
     if(killed(p))
       exit(-1);
 
+    if(strncmp(p->name, "vm-", 3) == 0){
+      trap_and_emulate();
+    }
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
     p->trapframe->epc += 4;
@@ -67,6 +70,9 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
+    if(strncmp(p->name, "vm-", 3) == 0){
+      trap_and_emulate();
+    }
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     setkilled(p);
