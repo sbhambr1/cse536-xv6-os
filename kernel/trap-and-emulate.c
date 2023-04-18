@@ -81,6 +81,22 @@ void trap_and_emulate(void) {
     // rs1 is in bits 19-15
     // upper is in bits 31-20
 
+    // Checking for ecall:        31..20-0x000, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
+    // Checking for sret:         31..20=0x102, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
+    // Checking for mret:         31..20=0x302, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
+    // Checking for csrr & csrw:                          14..12=1,          6..2=0x1C, 1..0=3
+
+
+    // Check ustatus and match opcode to check if it is a user instruction, i.e., csrr or csrw
+    uint32 instr = r_ustatus();
+    op = instr & 0x7F;
+    rd = (instr >> 7) & 0x1F;
+    rs1 = (instr >> 15) & 0x1F;
+    upper = (instr >> 20) & 0xFFF;
+
+    // Check sstatus and match opcode to check if it is a supervisor instruction, i.e., sret or ecall
+    // Check mstatus and match opcode to check if it is a machine instruction, i.e., mret
+
     uint32 instr = r_sstatus();
     op = instr & 0x7F;
     rd = (instr >> 7) & 0x1F;
@@ -147,16 +163,5 @@ void trap_and_emulate_init(void) {
 
     // boot the VM in the M mode by setting 11th and 12th bit of mstatus to 1
     vms->mstatus.val = vms->mstatus.val | (1 << 11) | (1 << 12);
-
-
-    // // Set the trap handler
-    // struct proc *p = myproc();
-    // printf("[PI] Setting trap handler for %s\n");
-    
-    // if (strncmp(p->name, "vm-", 3) == 0) {
-    //     trap_and_emulate();
-    // }
-
-    // trap_and_emulate();
     
 }
