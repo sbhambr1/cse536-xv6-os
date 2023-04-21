@@ -69,7 +69,25 @@ struct vm_virtual_state {
 
 void handle_sret(struct vm_virtual_state *vms){
     printf("handle_sret\n");
-    // TODO: Implement this function
+    uint32 mstatus = r_mstatus(); // read mstatus register
+    uint32 spp = (mstatus >> 8) & 0x1; // get the previous privilege level (spp)
+    uint32 sp = spp ? MSTATUS_MPP_S : MSTATUS_MPP_U; // get the previous privilege level (sp)
+
+    // set the previous privilege level (MPP) to user mode (MPP_U)
+    mstatus &= ~MSTATUS_MPP_MASK; // clear MPP bits
+    mstatus |= sp << 0x11 ; // set MPP bits to user mode
+    w_mstatus(mstatus); // write mstatus register
+
+    // set the program count to the value of sepc
+    uint32 sepc = r_sepc(); // read sepc register
+    w_mtvec(sepc & ~0x3); // write mtvec register
+
+    // clear the SED bit in mstatus
+    mstatus &= ~MSTATUS_MIE;
+    w_mstatus(mstatus); // write mstatus register
+
+    // execute the instruction
+    asm volatile("sret");
 }
 
 void handle_mret(struct vm_virtual_state *vms){
