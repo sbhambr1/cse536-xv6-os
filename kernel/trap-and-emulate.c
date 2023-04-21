@@ -74,7 +74,24 @@ void handle_sret(struct vm_virtual_state *vms){
 
 void handle_mret(struct vm_virtual_state *vms){
     printf("handle_mret\n");
-    // TODO: Implement this function
+    uint32 mstatus = r_mstatus(); // read mstatus register
+    uint32 mpp = (mstatus & MSTATUS_MPP_MASK) >> 0x11; // get the previous privilege level (mpp)
+
+    // set the previous privilege level (mpp) to supervisor mode (mpp_s)
+    mstatus &= ~MSTATUS_MPP_MASK; // clear mpp bits
+    mstatus |= MSTATUS_MPP_S << 0x11 ; // set mpp bits to supervisor mode
+    w_mstatus(mstatus); // write mstatus register
+
+    // set the program count to the value of mepc
+    uint32 mepc = r_mepc(); // read mepc register
+    w_mtvec(mepc & ~0x3); // write mtvec register
+
+    // clear the MED bit in mstatus
+    mstatus &= ~MSTATUS_MIE; // clear MED bit
+    w_mstatus(mstatus); // write mstatus register
+
+    // execute the instruction
+    asm volatile("mret");
 }
 
 void handle_ecall(struct vm_virtual_state *vms){
@@ -86,12 +103,14 @@ void handle_ecall(struct vm_virtual_state *vms){
 
 void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
     printf("handle_csrr\n");
-    // TODO: Implement this function
+    // read the register at the upper bits
+    // write the value to the rd register
 }
 
 void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
     printf("handle_csrw\n");
-    // TODO: Implement this function
+    // read the value of the rs1 register
+    // write the value to the upper bits
 }
 
 void trap_and_emulate(void) {
