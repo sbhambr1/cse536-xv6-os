@@ -121,14 +121,33 @@ void handle_ecall(struct vm_virtual_state *vms){
 
 void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
     printf("handle_csrr\n");
-    // read the register at the upper bits
-    // write the value to the rd register
+    // read the mstatus register
+    uint32 mstatus = r_mstatus();
+    uint32 spp = (mstatus >> 8) & 0x1; // get the previous privilege level (spp)
+
+    // check if the privilege level is correct
+    if(spp == 0 && (upper == 0x100 || upper == 0x102)){
+        printf("handle_csrr: invalid privilege level\n");
+        return;
+    }
+
+    // read the value of the rs1 register
+    // write the value to the register specified in the upper bits
 }
 
 void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
     printf("handle_csrw\n");
-    // read the value of the rs1 register
-    // write the value to the upper bits
+    uint32 mstatus = r_mstatus(); // read mstatus register
+    uint32 spp = (mstatus >> 8) & 0x1; // get the previous privilege level (spp)
+
+    // check if the privilege level is correct
+    if(spp == 0 && (upper == 0x100 || upper == 0x102)){
+        printf("handle_csrw: invalid privilege level\n");
+        return;
+    }
+
+    // read the value of the register specified in the upper bits
+    // write the value to the rd register
 }
 
 void trap_and_emulate(void) {
