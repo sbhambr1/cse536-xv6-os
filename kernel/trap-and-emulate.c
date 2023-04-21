@@ -67,27 +67,29 @@ struct vm_virtual_state {
     int priv; // 0 = U, 1 = S, 2 = M
 };
 
-void handle_sret(void){
+void handle_sret(struct vm_virtual_state *vms){
     printf("handle_sret\n");
     // TODO: Implement this function
 }
 
-void handle_mret(void){
+void handle_mret(struct vm_virtual_state *vms){
     printf("handle_mret\n");
     // TODO: Implement this function
 }
 
-void handle_ecall(void){
+void handle_ecall(struct vm_virtual_state *vms){
     printf("handle_ecall\n");
     // TODO: Implement this function
+    // load syscall code from scause register
+    uint32 code = r_scause() & 0x7FFFFFFF;
 }
 
-void handle_csrr(unsigned int rs1, unsigned int rd, unsigned int upper){
+void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
     printf("handle_csrr\n");
     // TODO: Implement this function
 }
 
-void handle_csrw(unsigned int rs1, unsigned int rd, unsigned int upper){
+void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
     printf("handle_csrw\n");
     // TODO: Implement this function
 }
@@ -123,44 +125,24 @@ void trap_and_emulate(void) {
 
     printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
 
-    // check if the instruction is sret
-    if (upper == 0x102 && rd == 0 && rs1 == 0 && op == 0x1C) {
-        // When a trap is taken into supervisor mode, SPIE is set to SIE, and SIE is set to 0. 
-        // set 5th bit in sstatus register to 1st bit in sstatus register
-        r_sstatus(r_sstatus() | (1 << 5));
-        // set 1st bit in sstatus register to 0
-        r_sstatus(r_sstatus() & ~(1 << 1));
-
-        // execute sret instruction
-    
-        // When an SRET instruction is executed, SIE is set to SPIE, then SPIE is set to 1.
-        // set 1st bit in sstatus register to 5th bit in sstatus register
-        r_sstatus(r_sstatus() | (1 << 1));
-        // set 5th bit in sstatus register to 1
-        r_sstatus(r_sstatus() | (1 << 5));
-    }
-
-    // check if the instruction is mret
-    if(upper == 0x302 && rd == 0 && rs1 == 0 && op == 0x1C) {
-        // set SPVP, i.e., the 8th bit in ms to 0
-        
-    }
+    struct vm_virtual_state *vms = (struct vm_virtual_state *)kalloc();
+    memset(vms, 0, sizeof(struct vm_virtual_state));
 
     switch (upper){
         case 0x000:
-            handle_ecall();
+            handle_ecall(vms);
             break;
         case 0x102:
-            handle_sret();
+            handle_sret(vms);
             break;
         case 0x302:
-            handle_mret();
+            handle_mret(vms);
             break;
         case 0x307:
             if(rs1 != 0 && rd == 0){
-                handle_csrr(rs1, rd, upper);
+                handle_csrr(vms, rs1, rd, upper);
             } else if(rs1 == 0 && rd != 0){
-                handle_csrw(rs1, rd, upper);
+                handle_csrw(vms, rs1, rd, upper);
             }
             break;
         default:
