@@ -67,6 +67,31 @@ struct vm_virtual_state {
     int priv; // 0 = U, 1 = S, 2 = M
 };
 
+void handle_sret(void){
+    printf("handle_sret\n");
+    // TODO: Implement this function
+}
+
+void handle_mret(void){
+    printf("handle_mret\n");
+    // TODO: Implement this function
+}
+
+void handle_ecall(void){
+    printf("handle_ecall\n");
+    // TODO: Implement this function
+}
+
+void handle_csrr(unsigned int rs1, unsigned int rd, unsigned int upper){
+    printf("handle_csrr\n");
+    // TODO: Implement this function
+}
+
+void handle_csrw(unsigned int rs1, unsigned int rd, unsigned int upper){
+    printf("handle_csrw\n");
+    // TODO: Implement this function
+}
+
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
 
@@ -86,24 +111,63 @@ void trap_and_emulate(void) {
     // Checking for mret:         31..20=0x302, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
     // Checking for csrr & csrw:                          14..12=1,          6..2=0x1C, 1..0=3
 
+    // read sepc register and mask to get only last 4 bytes
+    uint32 instr = r_sepc() & 0xFFFFFFFF;
+    // using kalloc, memset etc to allocate memory for the instruction
 
-    // Check ustatus and match opcode to check if it is a user instruction, i.e., csrr or csrw
-    uint32 instr = r_ustatus();
-    op = instr & 0x7F;
-    rd = (instr >> 7) & 0x1F;
-    rs1 = (instr >> 15) & 0x1F;
-    upper = (instr >> 20) & 0xFFF;
-
-    // Check sstatus and match opcode to check if it is a supervisor instruction, i.e., sret or ecall
-    // Check mstatus and match opcode to check if it is a machine instruction, i.e., mret
-
-    uint32 instr = r_sstatus();
+    // extract the opcode, rd, rs1, and upper bits
     op = instr & 0x7F;
     rd = (instr >> 7) & 0x1F;
     rs1 = (instr >> 15) & 0x1F;
     upper = (instr >> 20) & 0xFFF;
 
     printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
+
+    // check if the instruction is sret
+    if (upper == 0x102 && rd == 0 && rs1 == 0 && op == 0x1C) {
+        // When a trap is taken into supervisor mode, SPIE is set to SIE, and SIE is set to 0. 
+        // set 5th bit in sstatus register to 1st bit in sstatus register
+        r_sstatus(r_sstatus() | (1 << 5));
+        // set 1st bit in sstatus register to 0
+        r_sstatus(r_sstatus() & ~(1 << 1));
+
+        // execute sret instruction
+    
+        // When an SRET instruction is executed, SIE is set to SPIE, then SPIE is set to 1.
+        // set 1st bit in sstatus register to 5th bit in sstatus register
+        r_sstatus(r_sstatus() | (1 << 1));
+        // set 5th bit in sstatus register to 1
+        r_sstatus(r_sstatus() | (1 << 5));
+    }
+
+    // check if the instruction is mret
+    if(upper == 0x302 && rd == 0 && rs1 == 0 && op == 0x1C) {
+        // set SPVP, i.e., the 8th bit in ms to 0
+        
+    }
+
+    switch (upper){
+        case 0x000:
+            handle_ecall();
+            break;
+        case 0x102:
+            handle_sret();
+            break;
+        case 0x302:
+            handle_mret();
+            break;
+        case 0x307:
+            if(rs1 != 0 && rd == 0){
+                handle_csrr(rs1, rd, upper);
+            } else if(rs1 == 0 && rd != 0){
+                handle_csrw(rs1, rd, upper);
+            }
+            break;
+        default:
+            printf("Invalid instruction\n");
+            break;
+    }
+
 }
 
 void trap_and_emulate_init(void) {
