@@ -160,6 +160,54 @@ w_mideleg(uint64 x)
   asm volatile("csrw mideleg, %0" : : "r" (x));
 }
 
+static inline uint64
+r_sedeleg()
+{
+  uint64 x;
+  asm volatile("csrr %0, sedeleg" : "=r" (x) );
+  return x;
+}
+
+static inline uint64
+r_mepc()
+{
+  uint64 x;
+  asm volatile("csrr %0, mepc" : "=r" (x) );
+  return x;
+}
+
+static inline uint64
+r_pc()
+{
+  uint64 x;
+  asm volatile("auipc %0, 0" : "=r" (x) );
+  return x;
+}
+
+static inline void
+w_pc(uint64 x)
+{
+  asm volatile("jalr x0, %0, 0" : : "r" (x));
+}
+
+static inline uint64
+r_mtvec()
+{
+  uint64 x;
+  asm volatile("csrr %0, mtvec" : "=r" (x) );
+  return x;
+}
+
+// void jump_to_sbi_handler() {
+//     uint32 sbi_func = 0; // 0 is the argument value for the SBI handler
+//     asm volatile("ecall" : : "a"(sbi_func));
+// }
+
+// void jump_to_kernel() {
+//     uint32 kernel_func = 1; // 1 is the argument value for the kernel
+//     asm volatile("ecall" : : "a"(kernel_func));
+// }
+
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
 static inline void 

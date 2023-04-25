@@ -93,7 +93,7 @@ void handle_sret(struct vm_virtual_state *vms){
 void handle_mret(struct vm_virtual_state *vms){
     printf("handle_mret\n");
     uint32 mstatus = r_mstatus(); // read mstatus register
-    uint32 mpp = (mstatus & MSTATUS_MPP_MASK) >> 0x11; // get the previous privilege level (mpp)
+    // uint32 mpp = (mstatus & MSTATUS_MPP_MASK) >> 0x11; // get the previous privilege level (mpp)
 
     // set the previous privilege level (mpp) to supervisor mode (mpp_s)
     mstatus &= ~MSTATUS_MPP_MASK; // clear mpp bits
@@ -114,9 +114,51 @@ void handle_mret(struct vm_virtual_state *vms){
 
 void handle_ecall(struct vm_virtual_state *vms){
     printf("handle_ecall\n");
+    printf("mstatus\n", vms->mstatus.val);
     // TODO: Implement this function
     // load syscall code from scause register
-    uint32 code = r_scause() & 0x7FFFFFFF;
+    uint32 code = r_scause() & 0xf;
+    uint32 p_mode = (r_scause() >> 32) & 0x3;
+    printf("code: %x\n", code);
+    printf("p_mode: %x\n", p_mode);
+
+    // check SEDELEG for the code
+    // uint32 sedeleg = r_sedeleg();
+    // printf("sedeleg: %x\n", sedeleg);
+    // check the 9th bit of sedeleg for supervisor ecall
+    if(code ==8 && p_mode == 1){
+        // read program counter and write to sepc 
+        uint32 pc = r_pc();
+        w_sepc(pc);
+        // raise privilege level to supervisor mode
+        vms->priv = 1;
+        vms->mstatus.val |= vms->mstatus.val | (1 << 11) | (0 << 12);
+        // jump to stvec
+        uint32 stvec = r_stvec();
+        w_pc(stvec);
+        // call kernel trap handler using ecall with 1
+        asm volatile("ecall");
+        // return to sepc
+        uint32 sepc = r_sepc();
+        w_pc(sepc);
+    }
+    // check the 0xb bit of sedeleg for hypervisor ecall
+    else if(code ==8 && p_mode == 3){
+        // read program counter and write to mepc
+        uint32 pc = r_pc();
+        w_mepc(pc);
+        // raise privilege level to machine mode
+        vms->priv = 2;
+        vms->mstatus.val |= vms->mstatus.val | (1 << 11) | (1 << 12);
+        // jump to mtvec
+        uint32 mtvec = r_mtvec();
+        w_pc(mtvec);
+        // call sbi trap handler using ecall with 0
+        asm volatile("ecall");
+        // return to mepc
+        uint32 mepc = r_mepc();
+        w_pc(mepc);
+    }
 }
 
 void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
@@ -170,8 +212,13 @@ void trap_and_emulate(void) {
     // Checking for csrr & csrw:                          14..12=1,          6..2=0x1C, 1..0=3
 
     // read sepc register and mask to get only last 4 bytes
-    uint32 instr = r_sepc() & 0xFFFFFFFF;
+    // uint32 instr = r_sepc() & 0xFFFFFFFF;
     // using kalloc, memset etc to allocate memory for the instruction
+
+    struct proc *p = myproc();
+    uint64 sepc = r_sepc();
+    uint64 paddr = walkaddr(p->pagetable, sepc);
+    uint32 instr = *(uint32 *)paddr;
 
     // extract the opcode, rd, rs1, and upper bits
     op = instr & 0x7F;
