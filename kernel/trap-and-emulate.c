@@ -232,54 +232,57 @@ void trap_and_emulate(void) {
     // Checking for mret:   upper = 001100000010, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
 
     // clear SIE bit in sstatus
-    uint32 sstatus = r_sstatus();
-    sstatus = sstatus & 0xFFFFFFFD;
+    // uint32 sstatus = r_sstatus();
+    // sstatus = sstatus & 0xFFFFFFFD;
 
-    // save the current mode in SPP bit in sstatus
-    // struct vm_virtual_state *vms;
-    uint p_mode = vms->priv;
-    if(p_mode == 1){
-        sstatus = sstatus | (1 << 8);
-    }
-    else if(p_mode == 2){
-        sstatus = sstatus | (1 << 9);
-    }
+    // // save the current mode in SPP bit in sstatus
+    // // struct vm_virtual_state *vms;
+    // uint p_mode = vms->priv;
+    // if(p_mode == 1){
+    //     sstatus = sstatus | (1 << 8);
+    // }
+    // else if(p_mode == 2){
+    //     sstatus = sstatus | (1 << 9);
+    // }
 
-    // set scause to reflect the cause of the trap
+    // // set scause to reflect the cause of the trap
     
-    // set the mode to supervisor
-    vms->priv = 1;
+    // // set the mode to supervisor
+    // vms->priv = 1;
 
-    // copy stvec to sepc
-    uint32 stvec = r_stvec();
-    w_sepc(stvec);
+    // // copy stvec to sepc
+    // uint32 stvec = r_stvec();
+    // w_sepc(stvec);
+
+    struct proc *p = myproc();
 
     // read the address from the program counter
     addr = r_sepc();
-    addr = addr & 0xFFFFFFFF; // only use the lower 32 bits
+    uint32 addr_p = addr & 0xFFFFFFFF; // only use the lower 32 bits
+
+    // uint64 paddr = walkaddr(p->pagetable, addr);
+
+    
+
+    int *kp = kalloc();
+    copyin(p->pagetable, (char *)kp, addr, 4);
+    uint64 instr = *(uint64 *)kp;
 
     // extract the op, rd, funct3, rs1 and upper bits from the instruction
-    op = (addr & 0x7F); // 6..0
-    rd = (addr >> 7) & 0x1F; // 11..7
-    funct3 = (addr >> 12) & 0x7; // 14..12
-    rs1 = (addr >> 15) & 0x1F; // 19..15
-    upper = (addr >> 20) & 0xFFF; // 31..20
-
-    op = binaryToHex(op);
-    rd = binaryToHex(rd);
-    funct3 = binaryToHex(funct3);
-    rs1 = binaryToHex(rs1);
-    upper = binaryToHex(upper);
+    op = (instr & 0x7F); // 6..0
+    rd = (instr >> 7) & 0x1F; // 11..7
+    funct3 = (instr >> 12) & 0x7; // 14..12
+    rs1 = (instr >> 15) & 0x1F; // 19..15
+    upper = (instr >> 20) & 0xFFF; // 31..20
 
     printf("(PI at %p) op = %x, rd = %x, funct3 = %x, rs1 = %x, uimm = %x\n", 
-                addr, op, rd, funct3, rs1, upper);
+                addr_p, op, rd, funct3, rs1, upper);
 
     if(funct3 == 0x1){
-        if(rs1 != 0 && rd == 0){
-                handle_csrr(vms, rs1, rd, upper);
-        } else if(rs1 == 0 && rd != 0){
-            handle_csrw(vms, rs1, rd, upper);
-        }
+        handle_csrw(vms, upper, rd, rs1);
+    }
+    else if(funct3 == 0x2){
+        handle_csrr(vms, upper, rd, rs1);
     }
     else if(funct3 == 0x0){
         if(upper == 0){
