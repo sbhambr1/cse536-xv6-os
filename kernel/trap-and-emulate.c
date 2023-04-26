@@ -195,8 +195,11 @@ void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
 
+    /* Retrieve all required values from the instruction */
+    uint64 addr     = 0;
     uint32 op       = 0;
     uint32 rd       = 0;
+    uint32 funct3   = 0;
     uint32 rs1      = 0;
     uint32 upper    = 0;
 
