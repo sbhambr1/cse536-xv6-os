@@ -227,7 +227,8 @@ void trap_and_emulate(void) {
     rs1 = (addr >> 15) & 0x1F; // 19..15
     upper = (addr >> 20) & 0xFFF; // 31..20
 
-    printf("[PI] op = %x, rd = %x, funct3 = %x, rs1 = %x, upper = %x\n", op, rd, funct3, rs1, upper);
+    printf("(PI at %p) op = %x, rd = %x, funct3 = %x, rs1 = %x, uimm = %x\n", 
+                addr, op, rd, funct3, rs1, upper);
 
     struct vm_virtual_state *vms = (struct vm_virtual_state *)kalloc();
     memset(vms, 0, sizeof(struct vm_virtual_state));
