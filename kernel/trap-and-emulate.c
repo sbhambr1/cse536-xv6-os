@@ -203,57 +203,54 @@ void trap_and_emulate(void) {
     uint32 rs1      = 0;
     uint32 upper    = 0;
 
-    // Read the 32-bit instruction from the VM
-    // opcode is in bits 6-0 and save in op
-    // rd is in bits 11-7
-    // rs1 is in bits 19-15
-    // upper is in bits 31-20
+    // for ecall/sret/mret:       31..20-funct12,     19..15-rs1, 14..12-funct3, 11..7-rd, 6..0-op
+    // for csrr/w:                31..20-source/dest, 19..15-rs1, 14..12-funct3, 11..7-rd, 6..0-op
 
     // Checking for ecall:        31..20-0x000, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
     // Checking for sret:         31..20=0x102, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
     // Checking for mret:         31..20=0x302, 19..15=0, 14..12=0, 11..7=0, 6..2=0x1C, 1..0=3
     // Checking for csrr & csrw:                          14..12=1,          6..2=0x1C, 1..0=3
 
-    // read sepc register and mask to get only last 4 bytes
-    // uint32 instr = r_sepc() & 0xFFFFFFFF;
-    // using kalloc, memset etc to allocate memory for the instruction
+    // Checking for ecall:  upper = 000000000000, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
+    // Checking for csrr/w:                                    funct3 = 001,             op = 1110011
+    // Checking for sret:   upper = 000100000010, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
+    // Checking for mret:   upper = 001100000010, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
 
+    // read the address from the program counter
     struct proc *p = myproc();
-    uint64 sepc = r_sepc();
-    uint64 paddr = walkaddr(p->pagetable, sepc);
-    uint32 instr = *(uint32 *)paddr;
+    addr = p->trapframe->epc;
+    addr = *(uint32 *)addr;
 
-    // extract the opcode, rd, rs1, and upper bits
-    op = instr & 0x7F;
-    rd = (instr >> 7) & 0x1F;
-    rs1 = (instr >> 15) & 0x1F;
-    upper = (instr >> 20) & 0xFFF;
+    // extract the op, rd, funct3, rs1 and upper bits from the instruction
+    op = (addr & 0x7F); // 6..0
+    rd = (addr >> 7) & 0x1F; // 11..7
+    funct3 = (addr >> 12) & 0x7; // 14..12
+    rs1 = (addr >> 15) & 0x1F; // 19..15
+    upper = (addr >> 20) & 0xFFF; // 31..20
 
-    printf("[PI] op = %x, rd = %x, rs1 = %x, upper = %x\n", op, rd, rs1, upper);
+    printf("[PI] op = %x, rd = %x, funct3 = %x, rs1 = %x, upper = %x\n", op, rd, funct3, rs1, upper);
 
     struct vm_virtual_state *vms = (struct vm_virtual_state *)kalloc();
     memset(vms, 0, sizeof(struct vm_virtual_state));
 
-    switch (upper){
-        case 0x000:
-            handle_ecall(vms);
-            break;
-        case 0x102:
-            handle_sret(vms);
-            break;
-        case 0x302:
-            handle_mret(vms);
-            break;
-        case 0x307:
-            if(rs1 != 0 && rd == 0){
+    if(funct3 == 0x1){
+        if(rs1 != 0 && rd == 0){
                 handle_csrr(vms, rs1, rd, upper);
-            } else if(rs1 == 0 && rd != 0){
-                handle_csrw(vms, rs1, rd, upper);
-            }
-            break;
-        default:
-            printf("Invalid instruction\n");
-            break;
+        } else if(rs1 == 0 && rd != 0){
+            handle_csrw(vms, rs1, rd, upper);
+        }
+    }
+    else if(funct3 == 0x0){
+        if(upper == 0){
+            handle_ecall(vms);
+        } else if(upper == 0x102){
+            handle_sret(vms);
+        } else if(upper == 0x302){
+            handle_mret(vms);
+        }
+    }
+    else{
+        printf("trap_and_emulate: invalid instruction\n");
     }
 
 }
