@@ -217,9 +217,8 @@ void trap_and_emulate(void) {
     // Checking for mret:   upper = 001100000010, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
 
     // read the address from the program counter
-    struct proc *p = myproc();
-    addr = p->trapframe->epc;
-    addr = *(uint32 *)addr;
+    addr = r_sepc();
+    addr = addr & 0xFFFFFFFF; // only use the lower 32 bits
 
     // extract the op, rd, funct3, rs1 and upper bits from the instruction
     op = (addr & 0x7F); // 6..0
