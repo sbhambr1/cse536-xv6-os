@@ -6,6 +6,19 @@
 #include "proc.h"
 #include "defs.h"
 
+// Program to convert binary to hex
+long int binaryToHex(long int n) {
+    int remainder; 
+    long int hex = 0, i = 1;
+    while (n != 0) {
+        remainder = n % 10;
+        hex = hex + remainder * i;
+        i = i * 2;
+        n = n / 10;
+    }
+    return hex;
+}
+
 // Struct to keep VM registers (Sample; feel free to change.)
 struct vm_reg {
     int     code;
@@ -194,6 +207,8 @@ void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
 
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
+    struct vm_virtual_state *vms = (struct vm_virtual_state *)kalloc();
+    memset(vms, 0, sizeof(struct vm_virtual_state));
 
     /* Retrieve all required values from the instruction */
     uint64 addr     = 0;
@@ -216,6 +231,29 @@ void trap_and_emulate(void) {
     // Checking for sret:   upper = 000100000010, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
     // Checking for mret:   upper = 001100000010, rs1 = 00000, funct3 = 000, rd = 00000, op = 1110011
 
+    // clear SIE bit in sstatus
+    uint32 sstatus = r_sstatus();
+    sstatus = sstatus & 0xFFFFFFFD;
+
+    // save the current mode in SPP bit in sstatus
+    // struct vm_virtual_state *vms;
+    uint p_mode = vms->priv;
+    if(p_mode == 1){
+        sstatus = sstatus | (1 << 8);
+    }
+    else if(p_mode == 2){
+        sstatus = sstatus | (1 << 9);
+    }
+
+    // set scause to reflect the cause of the trap
+    
+    // set the mode to supervisor
+    vms->priv = 1;
+
+    // copy stvec to sepc
+    uint32 stvec = r_stvec();
+    w_sepc(stvec);
+
     // read the address from the program counter
     addr = r_sepc();
     addr = addr & 0xFFFFFFFF; // only use the lower 32 bits
@@ -227,11 +265,14 @@ void trap_and_emulate(void) {
     rs1 = (addr >> 15) & 0x1F; // 19..15
     upper = (addr >> 20) & 0xFFF; // 31..20
 
+    op = binaryToHex(op);
+    rd = binaryToHex(rd);
+    funct3 = binaryToHex(funct3);
+    rs1 = binaryToHex(rs1);
+    upper = binaryToHex(upper);
+
     printf("(PI at %p) op = %x, rd = %x, funct3 = %x, rs1 = %x, uimm = %x\n", 
                 addr, op, rd, funct3, rs1, upper);
-
-    struct vm_virtual_state *vms = (struct vm_virtual_state *)kalloc();
-    memset(vms, 0, sizeof(struct vm_virtual_state));
 
     if(funct3 == 0x1){
         if(rs1 != 0 && rd == 0){
