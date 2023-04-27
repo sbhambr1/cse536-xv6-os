@@ -81,6 +81,16 @@ struct vm_virtual_state {
     struct vm_reg mtinst;
     struct vm_reg mtval2;
 
+    // Process trapframe registers
+    struct vm_reg s0;
+    struct vm_reg s1;
+    struct vm_reg a0;
+    struct vm_reg a1;
+    struct vm_reg a2;
+    struct vm_reg a3;
+    struct vm_reg a4;
+    struct vm_reg a5;
+
     // Current execution privilege level
     int priv; // 0 = U, 1 = S, 2 = M
 };
@@ -191,6 +201,7 @@ void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
     The assembler pseudoinstruction to read a CSR, CSRR rd, csr , is encoded as CSRRS rd, csr, x0 */
 
     uint32 value = 0;
+    struct proc *p = myproc();
     
     // iterate through the vms csr array to find the csr
     for(int i = 0; i < 35; i++){
@@ -200,12 +211,26 @@ void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
         }
     }
 
-    for(int i = 0; i < 35; i++){
-        if(vms->regs[i].code == rd){
-            vms->regs[i].val = value;
-            break;
-        }
-    }
+    // // create a hash table to store the csr names
+    // char csr_hash[8];
+    // csr_hash[0] = 's0';
+    // csr_hash[1] = 's1';
+    // csr_hash[2] = 'a0';
+    // csr_hash[3] = 'a1';
+    // csr_hash[4] = 'a2';
+    // csr_hash[5] = 'a3';
+    // csr_hash[6] = 'a4';
+    // csr_hash[7] = 'a5';
+
+    p->trapframe->a1 = value;
+    p->trapframe->epc += 4;
+
+    // for(int i = 34; i < 42; i++){
+    //     if(vms->regs[i].code == rd){
+    //         p->trapframe->a1 = value;
+    //         break;
+    //     }  
+    // }
     
 }
 
@@ -228,11 +253,11 @@ void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
         }
     }
 
-    for(int i = 0; i < 35; i++){
+    for(int i = 34; i < 42; i++){
         if(vms->regs[i].code == rd){
             vms->regs[i].val = value;
             break;
-        }
+        }  
     }
 }
 
@@ -299,6 +324,7 @@ void trap_and_emulate(void) {
         setkilled(p);
     }
 
+    printf("trap_and_emulate: returning to user space\n");
 }
 
 void trap_and_emulate_init(void) {
@@ -352,6 +378,16 @@ void trap_and_emulate_init(void) {
     vms->regs[31] = vms->mip = (struct vm_reg){.code = 0x344, .mode = 2, .val = 0};
     vms->regs[32] = vms->mtinst = (struct vm_reg){.code = 0x34A, .mode = 2, .val = 0};
     vms->regs[33] = vms->mtval2 = (struct vm_reg){.code = 0x34B, .mode = 2, .val = 0};
+
+    // Process trapframe registers
+    vms->regs[34] = vms->s0 = (struct vm_reg){.code = 0x000, .mode = 0, .val = 0};
+    vms->regs[35] = vms->s1 = (struct vm_reg){.code = 0x001, .mode = 0, .val = 0};
+    vms->regs[36] = vms->a0 = (struct vm_reg){.code = 0x010, .mode = 0, .val = 0};
+    vms->regs[37] = vms->a1 = (struct vm_reg){.code = 0x011, .mode = 0, .val = 0};
+    vms->regs[38] = vms->a2 = (struct vm_reg){.code = 0x100, .mode = 0, .val = 0};
+    vms->regs[39] = vms->a3 = (struct vm_reg){.code = 0x101, .mode = 0, .val = 0};
+    vms->regs[40] = vms->a4 = (struct vm_reg){.code = 0x110, .mode = 0, .val = 0};
+    vms->regs[41] = vms->a5 = (struct vm_reg){.code = 0x111, .mode = 0, .val = 0};
 
     // Current execution privilege level
     vms->priv = 2; // 0 = U, 1 = S, 2 = M
