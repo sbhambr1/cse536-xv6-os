@@ -190,7 +190,6 @@ void handle_ecall(struct vm_virtual_state *vms){
 }
 
 void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
-    printf("handle_csrr\n");
     
     /* The CSRRS (Atomic Read and Set Bits in CSR) instruction reads the value of the CSR, zero-extends the value to XLEN bits, 
     and writes it to integer register rd
@@ -211,31 +210,12 @@ void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
         }
     }
 
-    // // create a hash table to store the csr names
-    // char csr_hash[8];
-    // csr_hash[0] = 's0';
-    // csr_hash[1] = 's1';
-    // csr_hash[2] = 'a0';
-    // csr_hash[3] = 'a1';
-    // csr_hash[4] = 'a2';
-    // csr_hash[5] = 'a3';
-    // csr_hash[6] = 'a4';
-    // csr_hash[7] = 'a5';
-
     p->trapframe->a1 = value;
     p->trapframe->epc += 4;
-
-    // for(int i = 34; i < 42; i++){
-    //     if(vms->regs[i].code == rd){
-    //         p->trapframe->a1 = value;
-    //         break;
-    //     }  
-    // }
     
 }
 
 void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
-    printf("handle_csrw\n");
     
     /* The CSRRW (Atomic Read/Write CSR) instruction atomically swaps values in the CSRs and integer registers
     CSRRW reads the old value of the CSR, zero-extends the value to XLEN bits, then writes it to integer register rd
@@ -244,6 +224,7 @@ void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
     while CSRWI csr, uimm , is encoded as CSRRWI x0, csr, uimm . */
 
     uint32 value = 0;
+    struct proc *p = myproc();
 
     // iterate through the vms csr array to find the csr
     for(int i = 0; i < 35; i++){
@@ -253,12 +234,15 @@ void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
         }
     }
 
-    for(int i = 34; i < 42; i++){
+    for(int i = 0; i < 35; i++){
         if(vms->regs[i].code == rd){
             vms->regs[i].val = value;
             break;
         }  
     }
+
+    p->trapframe->epc += 4;
+
 }
 
 void trap_and_emulate(void) {
@@ -311,6 +295,7 @@ void trap_and_emulate(void) {
         handle_csrr(vms, rs1 = rs1, rd = rd, upper = upper);
     }
     else if(funct3 == 0x0){
+        setkilled(p);
         if(upper == 0){
             handle_ecall(vms);
         } else if(upper == 0x102){
@@ -323,8 +308,6 @@ void trap_and_emulate(void) {
         printf("trap_and_emulate: invalid instruction\n");
         setkilled(p);
     }
-
-    printf("trap_and_emulate: returning to user space\n");
 }
 
 void trap_and_emulate_init(void) {
