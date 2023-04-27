@@ -87,96 +87,96 @@ struct vm_virtual_state {
 
 void handle_sret(struct vm_virtual_state *vms){
     printf("handle_sret\n");
-    uint32 mstatus = r_mstatus(); // read mstatus register
-    uint32 spp = (mstatus >> 8) & 0x1; // get the previous privilege level (spp)
-    uint32 sp = spp ? MSTATUS_MPP_S : MSTATUS_MPP_U; // get the previous privilege level (sp)
+    // uint32 mstatus = r_mstatus(); // read mstatus register
+    // uint32 spp = (mstatus >> 8) & 0x1; // get the previous privilege level (spp)
+    // uint32 sp = spp ? MSTATUS_MPP_S : MSTATUS_MPP_U; // get the previous privilege level (sp)
 
-    // set the previous privilege level (MPP) to user mode (MPP_U)
-    mstatus &= ~MSTATUS_MPP_MASK; // clear MPP bits
-    mstatus |= sp << 0x11 ; // set MPP bits to user mode
-    w_mstatus(mstatus); // write mstatus register
+    // // set the previous privilege level (MPP) to user mode (MPP_U)
+    // mstatus &= ~MSTATUS_MPP_MASK; // clear MPP bits
+    // mstatus |= sp << 0x11 ; // set MPP bits to user mode
+    // w_mstatus(mstatus); // write mstatus register
 
-    // set the program count to the value of sepc
-    uint32 sepc = r_sepc(); // read sepc register
-    w_mtvec(sepc & ~0x3); // write mtvec register
+    // // set the program count to the value of sepc
+    // uint32 sepc = r_sepc(); // read sepc register
+    // w_mtvec(sepc & ~0x3); // write mtvec register
 
-    // clear the SED bit in mstatus
-    mstatus &= ~MSTATUS_MIE;
-    w_mstatus(mstatus); // write mstatus register
+    // // clear the SED bit in mstatus
+    // mstatus &= ~MSTATUS_MIE;
+    // w_mstatus(mstatus); // write mstatus register
 
-    // execute the instruction
-    asm volatile("sret");
+    // // execute the instruction
+    // asm volatile("sret");
 }
 
 void handle_mret(struct vm_virtual_state *vms){
     printf("handle_mret\n");
-    uint32 mstatus = r_mstatus(); // read mstatus register
-    // uint32 mpp = (mstatus & MSTATUS_MPP_MASK) >> 0x11; // get the previous privilege level (mpp)
+    // uint32 mstatus = r_mstatus(); // read mstatus register
+    // // uint32 mpp = (mstatus & MSTATUS_MPP_MASK) >> 0x11; // get the previous privilege level (mpp)
 
-    // set the previous privilege level (mpp) to supervisor mode (mpp_s)
-    mstatus &= ~MSTATUS_MPP_MASK; // clear mpp bits
-    mstatus |= MSTATUS_MPP_S << 0x11 ; // set mpp bits to supervisor mode
-    w_mstatus(mstatus); // write mstatus register
+    // // set the previous privilege level (mpp) to supervisor mode (mpp_s)
+    // mstatus &= ~MSTATUS_MPP_MASK; // clear mpp bits
+    // mstatus |= MSTATUS_MPP_S << 0x11 ; // set mpp bits to supervisor mode
+    // w_mstatus(mstatus); // write mstatus register
 
-    // set the program count to the value of mepc
-    uint32 mepc = r_mepc(); // read mepc register
-    w_mtvec(mepc & ~0x3); // write mtvec register
+    // // set the program count to the value of mepc
+    // uint32 mepc = r_mepc(); // read mepc register
+    // w_mtvec(mepc & ~0x3); // write mtvec register
 
-    // clear the MED bit in mstatus
-    mstatus &= ~MSTATUS_MIE; // clear MED bit
-    w_mstatus(mstatus); // write mstatus register
+    // // clear the MED bit in mstatus
+    // mstatus &= ~MSTATUS_MIE; // clear MED bit
+    // w_mstatus(mstatus); // write mstatus register
 
-    // execute the instruction
-    asm volatile("mret");
+    // // execute the instruction
+    // asm volatile("mret");
 }
 
 void handle_ecall(struct vm_virtual_state *vms){
     printf("handle_ecall\n");
-    printf("mstatus\n", vms->mstatus.val);
-    // TODO: Implement this function
-    // load syscall code from scause register
-    uint32 code = r_scause() & 0xf;
-    uint32 p_mode = (r_scause() >> 32) & 0x3;
-    printf("code: %x\n", code);
-    printf("p_mode: %x\n", p_mode);
+    // printf("mstatus\n", vms->mstatus.val);
+    // // TODO: Implement this function
+    // // load syscall code from scause register
+    // uint32 code = r_scause() & 0xf;
+    // uint32 p_mode = (r_scause() >> 32) & 0x3;
+    // printf("code: %x\n", code);
+    // printf("p_mode: %x\n", p_mode);
 
-    // check SEDELEG for the code
-    // uint32 sedeleg = r_sedeleg();
-    // printf("sedeleg: %x\n", sedeleg);
-    // check the 9th bit of sedeleg for supervisor ecall
-    if(code ==8 && p_mode == 1){
-        // read program counter and write to sepc 
-        uint32 pc = r_pc();
-        w_sepc(pc);
-        // raise privilege level to supervisor mode
-        vms->priv = 1;
-        vms->mstatus.val |= vms->mstatus.val | (1 << 11) | (0 << 12);
-        // jump to stvec
-        uint32 stvec = r_stvec();
-        w_pc(stvec);
-        // call kernel trap handler using ecall with 1
-        asm volatile("ecall");
-        // return to sepc
-        uint32 sepc = r_sepc();
-        w_pc(sepc);
-    }
-    // check the 0xb bit of sedeleg for hypervisor ecall
-    else if(code ==8 && p_mode == 3){
-        // read program counter and write to mepc
-        uint32 pc = r_pc();
-        w_mepc(pc);
-        // raise privilege level to machine mode
-        vms->priv = 2;
-        vms->mstatus.val |= vms->mstatus.val | (1 << 11) | (1 << 12);
-        // jump to mtvec
-        uint32 mtvec = r_mtvec();
-        w_pc(mtvec);
-        // call sbi trap handler using ecall with 0
-        asm volatile("ecall");
-        // return to mepc
-        uint32 mepc = r_mepc();
-        w_pc(mepc);
-    }
+    // // check SEDELEG for the code
+    // // uint32 sedeleg = r_sedeleg();
+    // // printf("sedeleg: %x\n", sedeleg);
+    // // check the 9th bit of sedeleg for supervisor ecall
+    // if(code ==8 && p_mode == 1){
+    //     // read program counter and write to sepc 
+    //     uint32 pc = r_pc();
+    //     w_sepc(pc);
+    //     // raise privilege level to supervisor mode
+    //     vms->priv = 1;
+    //     vms->mstatus.val |= vms->mstatus.val | (1 << 11) | (0 << 12);
+    //     // jump to stvec
+    //     uint32 stvec = r_stvec();
+    //     w_pc(stvec);
+    //     // call kernel trap handler using ecall with 1
+    //     asm volatile("ecall");
+    //     // return to sepc
+    //     uint32 sepc = r_sepc();
+    //     w_pc(sepc);
+    // }
+    // // check the 0xb bit of sedeleg for hypervisor ecall
+    // else if(code ==8 && p_mode == 3){
+    //     // read program counter and write to mepc
+    //     uint32 pc = r_pc();
+    //     w_mepc(pc);
+    //     // raise privilege level to machine mode
+    //     vms->priv = 2;
+    //     vms->mstatus.val |= vms->mstatus.val | (1 << 11) | (1 << 12);
+    //     // jump to mtvec
+    //     uint32 mtvec = r_mtvec();
+    //     w_pc(mtvec);
+    //     // call sbi trap handler using ecall with 0
+    //     asm volatile("ecall");
+    //     // return to mepc
+    //     uint32 mepc = r_mepc();
+    //     w_pc(mepc);
+    // }
 }
 
 void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd, unsigned int upper){
@@ -190,14 +190,22 @@ void handle_csrr(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
     The CSRRS and CSRRC instructions have same behavior so are shown as CSRR
     The assembler pseudoinstruction to read a CSR, CSRR rd, csr , is encoded as CSRRS rd, csr, x0 */
 
-    struct proc *p = myproc();
-    uint32 csr = upper;
+    uint32 value = 0;
     
     // iterate through the vms csr array to find the csr
+    for(int i = 0; i < 35; i++){
+        if(vms->regs[i].code == upper){
+            value = vms->regs[i].val;
+            break;
+        }
+    }
 
-
-    
-
+    for(int i = 0; i < 35; i++){
+        if(vms->regs[i].code == rd){
+            vms->regs[i].val = value;
+            break;
+        }
+    }
     
 }
 
@@ -209,6 +217,23 @@ void handle_csrw(struct vm_virtual_state *vms, unsigned int rs1, unsigned int rd
     A CSRRW with rs1 = x0 will attempt to write zero to the destination CSR.
     The assembler pseudoinstruction to write a CSR, CSRW csr, rs1 , is encoded as CSRRW x0, csr, rs1 , 
     while CSRWI csr, uimm , is encoded as CSRRWI x0, csr, uimm . */
+
+    uint32 value = 0;
+
+    // iterate through the vms csr array to find the csr
+    for(int i = 0; i < 35; i++){
+        if(vms->regs[i].code == upper){
+            value = vms->regs[i].val;
+            break;
+        }
+    }
+
+    for(int i = 0; i < 35; i++){
+        if(vms->regs[i].code == rd){
+            vms->regs[i].val = value;
+            break;
+        }
+    }
 }
 
 void trap_and_emulate(void) {
@@ -255,10 +280,10 @@ void trap_and_emulate(void) {
                 addr_p, op, rd, funct3, rs1, upper);
 
     if(funct3 == 0x1){
-        handle_csrw(vms, upper, rd, rs1);
+        handle_csrw(vms, rs1 = rs1, rd = rd, upper = upper);
     }
     else if(funct3 == 0x2){
-        handle_csrr(vms, upper, rd, rs1);
+        handle_csrr(vms, rs1 = rs1, rd = rd, upper = upper);
     }
     else if(funct3 == 0x0){
         if(upper == 0){
