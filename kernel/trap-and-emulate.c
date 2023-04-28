@@ -118,26 +118,36 @@ void handle_sret(struct vm_virtual_state *vms){
     // asm volatile("sret");
 }
 
-void handle_mret(struct vm_virtual_state *vms){
+void handle_mret(struct vm_virtual_state *vms, struct proc *p){
     printf("handle_mret\n");
-    // uint32 mstatus = r_mstatus(); // read mstatus register
-    // // uint32 mpp = (mstatus & MSTATUS_MPP_MASK) >> 0x11; // get the previous privilege level (mpp)
 
-    // // set the previous privilege level (mpp) to supervisor mode (mpp_s)
-    // mstatus &= ~MSTATUS_MPP_MASK; // clear mpp bits
-    // mstatus |= MSTATUS_MPP_S << 0x11 ; // set mpp bits to supervisor mode
-    // w_mstatus(mstatus); // write mstatus register
+    unsigned long x = vms->mstatus.val;
+    x &= ~MSTATUS_MPP_MASK;
+    x |= MSTATUS_MPP_S;
+    vms->mstatus.val = x;
 
-    // // set the program count to the value of mepc
-    // uint32 mepc = r_mepc(); // read mepc register
-    // w_mtvec(mepc & ~0x3); // write mtvec register
+    vms->mepc.val = p->trapframe->epc;
 
-    // // clear the MED bit in mstatus
-    // mstatus &= ~MSTATUS_MIE; // clear MED bit
-    // w_mstatus(mstatus); // write mstatus register
+    printf("epc: %x\n", p->trapframe->epc);
 
-    // // execute the instruction
-    // asm volatile("mret");
+    unsigned long int mstatus = vms->mstatus.val; // read mstatus register
+    unsigned long int mpp = (mstatus >> 11) & 0x1; // get the previous privilege level (mpp)
+    // set the interrupt enable bit (MIE) to mpie
+    mstatus &= ~MSTATUS_MIE; // clear MIE bit
+    vms->priv = mpp ? 1 : 0; // set the current privilege level (priv) to mpp
+    // set mpie to 1
+    mstatus |= 1 << 0x7; // set MIE bit to mpie
+    // set MPRV to 0
+    mstatus &= ~(1 << 0x17); // clear MPRV bit
+
+    vms->mstatus.val = mstatus; // write mstatus register
+
+    p->trapframe->epc = vms->mtvec.val; // set the program count to the value of mtvec
+    
+    printf("epc: %x\n", p->trapframe->epc);
+
+    p->trapframe->epc = vms->mepc.val; // set the program count to the value of mepc
+
 }
 
 void handle_ecall(struct vm_virtual_state *vms){
@@ -295,13 +305,15 @@ void trap_and_emulate(void) {
         handle_csrr(vms, rs1 = rs1, rd = rd, upper = upper);
     }
     else if(funct3 == 0x0){
-        setkilled(p);
         if(upper == 0){
             handle_ecall(vms);
+            setkilled(p);
         } else if(upper == 0x102){
             handle_sret(vms);
+            setkilled(p);
         } else if(upper == 0x302){
-            handle_mret(vms);
+            handle_mret(vms, p);
+            setkilled(p);
         }
     }
     else{
