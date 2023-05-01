@@ -94,27 +94,24 @@ struct vm_virtual_state {
     int priv; // 0 = U, 1 = S, 2 = M
 };
 
-void handle_sret(){
-    printf("handle_sret\n");
-    // uint32 mstatus = r_mstatus(); // read mstatus register
-    // uint32 spp = (mstatus >> 8) & 0x1; // get the previous privilege level (spp)
-    // uint32 sp = spp ? MSTATUS_MPP_S : MSTATUS_MPP_U; // get the previous privilege level (sp)
+void handle_sret(struct proc *p){
+    
+    unsigned long x = vms.regs[8].val;
 
-    // // set the previous privilege level (MPP) to user mode (MPP_U)
-    // mstatus &= ~MSTATUS_MPP_MASK; // clear MPP bits
-    // mstatus |= sp << 0x11 ; // set MPP bits to user mode
-    // w_mstatus(mstatus); // write mstatus register
+    unsigned long int spp = (x >> 8) & 0x1; // get the previous privilege level (spp)
 
-    // // set the program count to the value of sepc
-    // uint32 sepc = r_sepc(); // read sepc register
-    // w_mtvec(sepc & ~0x3); // write mtvec register
+    x &= ~(1 << 0x8); // set SPP bit to 0
 
-    // // clear the SED bit in mstatus
-    // mstatus &= ~MSTATUS_MIE;
-    // w_mstatus(mstatus); // write mstatus register
+    unsigned long int spie = (x >> 5) & 0x1; // get the previous interrupt enable bit (spie)
+    x |= spie << 1; // set SIE bit to SPIE
 
-    // // execute the instruction
-    // asm volatile("sret");
+    x &= (1 << 0x5); // set SPIE bit to 1
+
+    vms.priv = spp ? 1 : 0; // set the current privilege level (priv) to spp
+
+    vms.regs[8].val = x; // write sstatus register
+
+    p->trapframe->epc = vms.regs[35].val; // set the program count to the value of sepc
 }
 
 void handle_mret(struct proc *p){
@@ -284,8 +281,14 @@ void trap_and_emulate(void) {
     rs1 = (instr >> 15) & 0x1F; // 19..15
     upper = (instr >> 20) & 0xFFF; // 31..20
 
-    printf("(PI at %p) op = %x, rd = %x, funct3 = %x, rs1 = %x, uimm = %x\n", 
+    if(funct3 == 0x0 && upper == 0){
+        printf("(PI at %p)\n", 
+                addr_p);
+    }
+    else{
+        printf("(PI at %p) op = %x, rd = %x, funct3 = %x, rs1 = %x, uimm = %x\n", 
                 addr_p, op, rd, funct3, rs1, upper);
+    }
 
     if(funct3 == 0x1){
         handle_csrw(p = p, rs1 = rs1, rd = rd, upper = upper);
@@ -298,8 +301,7 @@ void trap_and_emulate(void) {
             handle_ecall();
             setkilled(p);
         } else if(upper == 0x102){
-            handle_sret();
-            setkilled(p);
+            handle_sret(p = p);
         } else if(upper == 0x302){
             handle_mret(p = p);
         }
