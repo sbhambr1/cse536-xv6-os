@@ -221,6 +221,36 @@ void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
 
 }
 
+int uvmcopy_pt(pagetable_t old, pagetable_t new, uint64 sz){
+
+    pte_t *pte;
+    uint64 pa, i;
+    uint flags;
+    char *mem;
+
+    for(i = 0; i < sz; i += PGSIZE){
+        pa = PTE2PA(*pte);
+        flags = PTE_FLAGS(*pte);
+        memmove(mem, (char*)pa, PGSIZE);
+    }
+    return 0;
+}
+
+void uvmunmap_pt(pagetable_t pagetable, uint64 va, uint64 npages, int do_free){
+
+    uint64 a;
+    pte_t *pte;
+
+    for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+        if(do_free){
+            uint64 pa = PTE2PA(*pte);
+            kfree((void*)pa);
+        }
+        *pte = 0;
+    }
+
+}
+
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
 
@@ -293,7 +323,7 @@ void trap_and_emulate(void) {
     The only PMP variant you must support is the TOR one you supported in assignment #1.
     If the VM tries to access PMP protected memory region, it should raise a page fault
     Then, you simply kill the VM. */
-
+    
 }
 
 void trap_and_emulate_init(void) {
