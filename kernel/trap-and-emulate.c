@@ -118,11 +118,8 @@ void handle_sret(){
 }
 
 void handle_mret(struct proc *p){
-    printf("handle_mret\n");
 
     unsigned long x = vms.regs[19].val;
-
-    printf("x: %x\n", x);
 
     unsigned long int mpp = (x >> 11) & 0x1; // get the previous privilege level (mpp)
 
@@ -137,14 +134,9 @@ void handle_mret(struct proc *p){
 
     vms.priv = mpp ? 1 : 0; // set the current privilege level (priv) to mpp
 
-    vms.mstatus.val = x; // write mstatus register
+    vms.regs[19].val = x; // write mstatus register
 
-    p->trapframe->epc = vms.mepc.val; // set the program count to the value of mepc
-
-    printf("x: %x\n", vms.mstatus.val);
-    printf("mepc: %x\n", vms.mepc.val);
-
-    setkilled(p);
+    p->trapframe->epc = vms.regs[28].val; // set the program count to the value of mepc
 
 }
 
@@ -216,7 +208,6 @@ void handle_csrr(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
                 value = vms.regs[i].val;
                 uint64* rd_p = &(p->trapframe->ra) + rd - 1;
                 *rd_p = value;    
-                printf("value: %x\n", value);
             }
             else{
                 setkilled(p);
