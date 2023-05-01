@@ -200,8 +200,14 @@ void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
     // iterate through the vms csr array to find the csr
     for(int i = 0; i < 39; i++){
         if(vms.regs[i].code == upper){
-            if(vms.priv >= vms.regs[i].mode){
+            if(i == 15 && vms.priv == 0){ // writing to mvendorid is only allowed in machine mode or supervisor mode
+                setkilled(p);
+            }
+            else if(vms.priv >= vms.regs[i].mode){
                 uint64* rs1_p= &(p->trapframe->ra) + rs1 - 1;
+                if(i == 15 && *rs1_p == 0x0){ // writing 0x0 to mvendorid is not allowed
+                    setkilled(p);
+                }
                 vms.regs[i].val = *rs1_p;
             }
             else{
