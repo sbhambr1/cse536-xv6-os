@@ -95,45 +95,58 @@ struct vm_virtual_state {
 };
 
 void handle_sret(struct proc *p){
+
+    if(vms.priv >= 1){
     
-    unsigned long x = vms.regs[8].val;
+        unsigned long x = vms.regs[8].val;
 
-    unsigned long int spp = (x >> 8) & 0x1; // get the previous privilege level (spp)
+        unsigned long int spp = (x >> 8) & 0x1; // get the previous privilege level (spp)
 
-    x &= ~(1 << 0x8); // set SPP bit to 0
+        x &= ~(1 << 0x8); // set SPP bit to 0
 
-    unsigned long int spie = (x >> 5) & 0x1; // get the previous interrupt enable bit (spie)
-    x |= spie << 1; // set SIE bit to SPIE
+        unsigned long int spie = (x >> 5) & 0x1; // get the previous interrupt enable bit (spie)
+        x |= spie << 1; // set SIE bit to SPIE
 
-    x &= (1 << 0x5); // set SPIE bit to 1
+        x &= (1 << 0x5); // set SPIE bit to 1
 
-    vms.priv = spp ? 1 : 0; // set the current privilege level (priv) to spp
+        vms.priv = spp ? 1 : 0; // set the current privilege level (priv) to spp
 
-    vms.regs[8].val = x; // write sstatus register
+        vms.regs[8].val = x; // write sstatus register
 
-    p->trapframe->epc = vms.regs[35].val; // set the program count to the value of sepc
+        p->trapframe->epc = vms.regs[35].val; // set the program count to the value of sepc
+    }
+    else{
+        setkilled(p);
+    }
 }
 
 void handle_mret(struct proc *p){
 
-    unsigned long x = vms.regs[19].val;
+    if(vms.priv >= 2){
 
-    unsigned long int mpp = (x >> 11) & 0x1; // get the previous privilege level (mpp)
+        unsigned long x = vms.regs[19].val;
 
-    x &= ~MSTATUS_MPP_MASK; // clear MPP bits
-  
-    unsigned long int mpie = (x >> 7) & 0x1; // get the previous interrupt enable bit (mpie)
-    x |= mpie << 3; // set MIE bit to MPIE
+        unsigned long int mpp = (x >> 11) & 0x1; // get the previous privilege level (mpp)
 
-    x &= (1 << 0x7); // set MPIE bit to 1
+        x &= ~MSTATUS_MPP_MASK; // clear MPP bits
+    
+        unsigned long int mpie = (x >> 7) & 0x1; // get the previous interrupt enable bit (mpie)
+        x |= mpie << 3; // set MIE bit to MPIE
 
-    x &= ~(1 << 0x17); // clear MPRV bit
+        x &= (1 << 0x7); // set MPIE bit to 1
 
-    vms.priv = mpp ? 1 : 0; // set the current privilege level (priv) to mpp
+        x &= ~(1 << 0x17); // clear MPRV bit
 
-    vms.regs[19].val = x; // write mstatus register
+        vms.priv = mpp ? 1 : 0; // set the current privilege level (priv) to mpp
 
-    p->trapframe->epc = vms.regs[28].val; // set the program count to the value of mepc
+        vms.regs[19].val = x; // write mstatus register
+
+        p->trapframe->epc = vms.regs[28].val; // set the program count to the value of mepc
+
+    }
+    else{
+        setkilled(p);
+    }
 
 }
 
