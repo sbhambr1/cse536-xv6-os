@@ -137,53 +137,12 @@ void handle_mret(struct proc *p){
 
 }
 
-void handle_ecall(){
-    printf("handle_ecall\n");
-    // printf("mstatus\n", vms.mstatus.val);
-    // // TODO: Implement this function
-    // // load syscall code from scause register
-    // uint32 code = r_scause() & 0xf;
-    // uint32 p_mode = (r_scause() >> 32) & 0x3;
-    // printf("code: %x\n", code);
-    // printf("p_mode: %x\n", p_mode);
+void trap_and_emulate_ecall(void){
 
-    // // check SEDELEG for the code
-    // // uint32 sedeleg = r_sedeleg();
-    // // printf("sedeleg: %x\n", sedeleg);
-    // // check the 9th bit of sedeleg for supervisor ecall
-    // if(code ==8 && p_mode == 1){
-    //     // read program counter and write to sepc 
-    //     uint32 pc = r_pc();
-    //     w_sepc(pc);
-    //     // raise privilege level to supervisor mode
-    //     vms.priv = 1;
-    //     vms.mstatus.val |= vms.mstatus.val | (1 << 11) | (0 << 12);
-    //     // jump to stvec
-    //     uint32 stvec = r_stvec();
-    //     w_pc(stvec);
-    //     // call kernel trap handler using ecall with 1
-    //     asm volatile("ecall");
-    //     // return to sepc
-    //     uint32 sepc = r_sepc();
-    //     w_pc(sepc);
-    // }
-    // // check the 0xb bit of sedeleg for hypervisor ecall
-    // else if(code ==8 && p_mode == 3){
-    //     // read program counter and write to mepc
-    //     uint32 pc = r_pc();
-    //     w_mepc(pc);
-    //     // raise privilege level to machine mode
-    //     vms.priv = 2;
-    //     vms.mstatus.val |= vms.mstatus.val | (1 << 11) | (1 << 12);
-    //     // jump to mtvec
-    //     uint32 mtvec = r_mtvec();
-    //     w_pc(mtvec);
-    //     // call sbi trap handler using ecall with 0
-    //     asm volatile("ecall");
-    //     // return to mepc
-    //     uint32 mepc = r_mepc();
-    //     w_pc(mepc);
-    // }
+    struct proc *p = myproc(); 
+    vms.regs[35].val = p->trapframe->epc; // read program counter and write to sepc
+    p->trapframe->epc = vms.regs[12].val; // jump to stvec
+    vms.priv = 1; // raise privilege level to supervisor mode  
 }
 
 void handle_csrr(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int upper){
@@ -298,8 +257,7 @@ void trap_and_emulate(void) {
     }
     else if(funct3 == 0x0){
         if(upper == 0){
-            handle_ecall();
-            setkilled(p);
+            trap_and_emulate_ecall();
         } else if(upper == 0x102){
             handle_sret(p = p);
         } else if(upper == 0x302){
