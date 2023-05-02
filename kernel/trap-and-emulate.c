@@ -97,22 +97,14 @@ struct vm_virtual_state {
 void handle_sret(struct proc *p){
 
     if(vms.priv >= 1){
-    
         unsigned long x = vms.regs[8].val;
-
         unsigned long int spp = (x >> 8) & 0x1; // get the previous privilege level (spp)
-
         x &= ~(1 << 0x8); // set SPP bit to 0
-
         unsigned long int spie = (x >> 5) & 0x1; // get the previous interrupt enable bit (spie)
         x |= spie << 1; // set SIE bit to SPIE
-
         x &= (1 << 0x5); // set SPIE bit to 1
-
         vms.priv = spp ? 1 : 0; // set the current privilege level (priv) to spp
-
         vms.regs[8].val = x; // write sstatus register
-
         p->trapframe->epc = vms.regs[35].val; // set the program count to the value of sepc
     }
     else{
@@ -123,26 +115,16 @@ void handle_sret(struct proc *p){
 void handle_mret(struct proc *p){
 
     if(vms.priv >= 2){
-
         unsigned long x = vms.regs[19].val;
-
         unsigned long int mpp = (x >> 11) & 0x1; // get the previous privilege level (mpp)
-
         x &= ~MSTATUS_MPP_MASK; // clear MPP bits
-    
         unsigned long int mpie = (x >> 7) & 0x1; // get the previous interrupt enable bit (mpie)
         x |= mpie << 3; // set MIE bit to MPIE
-
         x &= (1 << 0x7); // set MPIE bit to 1
-
         x &= ~(1 << 0x17); // clear MPRV bit
-
         vms.priv = mpp ? 1 : 0; // set the current privilege level (priv) to mpp
-
         vms.regs[19].val = x; // write mstatus register
-
         p->trapframe->epc = vms.regs[28].val; // set the program count to the value of mepc
-
     }
     else{
         setkilled(p);
@@ -160,14 +142,6 @@ void trap_and_emulate_ecall(void){
 
 void handle_csrr(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int upper){
     
-    /* The CSRRS (Atomic Read and Set Bits in CSR) instruction reads the value of the CSR, zero-extends the value to XLEN bits, 
-    and writes it to integer register rd
-    For both CSRRS and CSRRC, if rs1 = x0 , then the instruction will not write to the CSR at all, and so shall not cause any of the side effects that might 
-    otherwise occur on a CSR write, such as raising illegal instruction exceptions on accesses to read-only CSRs
-    Both CSRRS and CSRRC always read the addressed CSR and cause any read side effects regardless of rs1 and rd fields
-    The CSRRS and CSRRC instructions have same behavior so are shown as CSRR
-    The assembler pseudoinstruction to read a CSR, CSRR rd, csr , is encoded as CSRRS rd, csr, x0 */
-
     uint32 value = 0;
     
     // iterate through the vms csr array to find the csr
@@ -184,18 +158,11 @@ void handle_csrr(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
         break;
         }
     }
-
     p->trapframe->epc += 4;
     
 }
 
 void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int upper){
-    
-    /* The CSRRW (Atomic Read/Write CSR) instruction atomically swaps values in the CSRs and integer registers
-    CSRRW reads the old value of the CSR, zero-extends the value to XLEN bits, then writes it to integer register rd
-    A CSRRW with rs1 = x0 will attempt to write zero to the destination CSR.
-    The assembler pseudoinstruction to write a CSR, CSRW csr, rs1 , is encoded as CSRRW x0, csr, rs1 , 
-    while CSRWI csr, uimm , is encoded as CSRRWI x0, csr, uimm . */
 
     // iterate through the vms csr array to find the csr
     for(int i = 0; i < 39; i++){
@@ -216,40 +183,39 @@ void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
         break;
         }
     }
-
     p->trapframe->epc += 4;
 
 }
 
-int uvmcopy_pt(pagetable_t old, pagetable_t new, uint64 sz){
+// int uvmcopy_pt(pagetable_t old, pagetable_t new, uint64 sz){
 
-    pte_t *pte;
-    uint64 pa, i;
-    uint flags;
-    char *mem;
+//     pte_t *pte;
+//     uint64 pa, i;
+//     uint flags;
+//     char *mem;
 
-    for(i = 0; i < sz; i += PGSIZE){
-        pa = PTE2PA(*pte);
-        flags = PTE_FLAGS(*pte);
-        memmove(mem, (char*)pa, PGSIZE);
-    }
-    return 0;
-}
+//     for(i = 0; i < sz; i += PGSIZE){
+//         pa = PTE2PA(*pte);
+//         flags = PTE_FLAGS(*pte);
+//         memmove(mem, (char*)pa, PGSIZE);
+//     }
+//     return 0;
+// }
 
-void uvmunmap_pt(pagetable_t pagetable, uint64 va, uint64 npages, int do_free){
+// void uvmunmap_pt(pagetable_t pagetable, uint64 va, uint64 npages, int do_free){
 
-    uint64 a;
-    pte_t *pte;
+//     uint64 a;
+//     pte_t *pte;
 
-    for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-        if(do_free){
-            uint64 pa = PTE2PA(*pte);
-            kfree((void*)pa);
-        }
-        *pte = 0;
-    }
+//     for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+//         if(do_free){
+//             uint64 pa = PTE2PA(*pte);
+//             kfree((void*)pa);
+//         }
+//         *pte = 0;
+//     }
 
-}
+// }
 
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
@@ -355,7 +321,7 @@ void trap_and_emulate_init(void) {
     // add supervisor trap handlin registers
 
     // Machine information registers
-    vms.regs[15] = vms.mvendorid = (struct vm_reg){.code = 0xF11, .mode = 2, .val = 637365353336};
+    vms.regs[15] = vms.mvendorid = (struct vm_reg){.code = 0xF11, .mode = 2, .val = 0x637365353336};
     vms.regs[16] = vms.marchid = (struct vm_reg){.code = 0xF12, .mode = 2, .val = 0};
     vms.regs[17] = vms.mimpid = (struct vm_reg){.code = 0xF13, .mode = 2, .val = 0};
     vms.regs[18] = vms.mhartid = (struct vm_reg){.code = 0xF14, .mode = 2, .val = 0};
