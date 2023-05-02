@@ -56,7 +56,7 @@ usertrap(void)
       exit(-1);
 
     if(strncmp(p->name, "vm-", 3) == 0){
-      trap_and_emulate_ecall();
+      trap_and_emulate();
     }
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
