@@ -321,7 +321,7 @@ void trap_and_emulate_init(void) {
     // add supervisor trap handlin registers
 
     // Machine information registers
-    vms.regs[15] = vms.mvendorid = (struct vm_reg){.code = 0xF11, .mode = 2, .val = 0x637365353336};
+    vms.regs[15] = vms.mvendorid = (struct vm_reg){.code = 0xF11, .mode = 2, .val = 0xC5E536};
     vms.regs[16] = vms.marchid = (struct vm_reg){.code = 0xF12, .mode = 2, .val = 0};
     vms.regs[17] = vms.mimpid = (struct vm_reg){.code = 0xF13, .mode = 2, .val = 0};
     vms.regs[18] = vms.mhartid = (struct vm_reg){.code = 0xF14, .mode = 2, .val = 0};
