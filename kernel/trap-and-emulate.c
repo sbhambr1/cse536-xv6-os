@@ -8,6 +8,7 @@
 #include "stdbool.h"
 
 struct vm_virtual_state vms;
+uint64 TOR = 0;
 
 // Program to convert binary to hex
 long int binaryToHex(long int n) {
@@ -33,7 +34,7 @@ struct vm_reg {
 struct vm_virtual_state {
 
     // array of registers
-    struct vm_reg regs[34];
+    struct vm_reg regs[40];
 
     // User trap setup
     struct vm_reg ustatus;
@@ -89,6 +90,9 @@ struct vm_virtual_state {
     struct vm_reg scause;
     struct vm_reg stval;
     struct vm_reg sip;
+
+    struct vm_reg pmpaddr0;
+    struct vm_reg pmpcfg0;
 
     // Current execution privilege level
     int priv; // 0 = U, 1 = S, 2 = M
@@ -191,12 +195,10 @@ void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
 
 //     pte_t *pte;
 //     uint64 pa, i;
-//     uint flags;
 //     char *mem;
 
 //     for(i = 0; i < sz; i += PGSIZE){
 //         pa = PTE2PA(*pte);
-//         flags = PTE_FLAGS(*pte);
 //         memmove(mem, (char*)pa, PGSIZE);
 //     }
 //     return 0;
@@ -289,6 +291,18 @@ void trap_and_emulate(void) {
     The only PMP variant you must support is the TOR one you supported in assignment #1.
     If the VM tries to access PMP protected memory region, it should raise a page fault
     Then, you simply kill the VM. */
+
+    // creates page table
+    // when writing the address of the page table to satp, OS will trap to kernel
+    // current page table is: guest PA -> host PA, so make a copy to a kernel page table and write that address to satp
+
+    // if(funct3 == 0 && upper == 0x102 && vms.priv == 1){ // sret
+    //     pagetable_t kernel_pt = uvmcreate();
+    //     uvmcopy_pt(p->pagetable, kernel_pt, 4096);
+    //     uint64 invalid_memory = TOR;
+    //     uvmunmap_pt(kernel_pt, invalid_memory, 1, 1);
+    //     vms.regs[14].val = (uint64)kernel_pt;
+    // }
     
 }
 
@@ -321,7 +335,7 @@ void trap_and_emulate_init(void) {
     // add supervisor trap handlin registers
 
     // Machine information registers
-    vms.regs[15] = vms.mvendorid = (struct vm_reg){.code = 0xF11, .mode = 2, .val = 0xC5E536};
+    vms.regs[15] = vms.mvendorid = (struct vm_reg){.code = 0xF11, .mode = 1, .val = 0xC5E536};
     vms.regs[16] = vms.marchid = (struct vm_reg){.code = 0xF12, .mode = 2, .val = 0};
     vms.regs[17] = vms.mimpid = (struct vm_reg){.code = 0xF13, .mode = 2, .val = 0};
     vms.regs[18] = vms.mhartid = (struct vm_reg){.code = 0xF14, .mode = 2, .val = 0};
@@ -351,6 +365,9 @@ void trap_and_emulate_init(void) {
     vms.regs[36] = vms.scause = (struct vm_reg){.code = 0x142, .mode = 1, .val = 0};
     vms.regs[37] = vms.stval = (struct vm_reg){.code = 0x143, .mode = 1, .val = 0};
     vms.regs[38] = vms.sip = (struct vm_reg){.code = 0x144, .mode = 1, .val = 0};
+
+    vms.regs[39] = vms.pmpaddr0 = (struct vm_reg){.code = 0x3B0, .mode = 2, .val = 0};
+    vms.regs[40] = vms.pmpcfg0 = (struct vm_reg){.code = 0x3A0, .mode = 2, .val = 0};
 
     // Current execution privilege level
     vms.priv = 2; // 0 = U, 1 = S, 2 = M
