@@ -6,9 +6,11 @@
 #include "proc.h"
 #include "defs.h"
 #include "stdbool.h"
+#include "stdlib.h"
 
 struct vm_virtual_state vms;
 uint64 TOR = 0;
+bool PMP = false;
 
 // Program to convert binary to hex
 long int binaryToHex(long int n) {
@@ -98,6 +100,42 @@ struct vm_virtual_state {
     int priv; // 0 = U, 1 = S, 2 = M
 };
 
+int uvmcopy_pt(pagetable_t old, pagetable_t new){
+
+    pte_t *pte = kalloc();
+    uint64 pa, i;
+    uint flags;
+    struct proc *p = myproc();
+
+    for(i = 0; i < p->sz; i += PGSIZE){
+        pa = PTE2PA(*pte);
+        flags = PTE_FLAGS(*pte);
+        mappages(new, i, PGSIZE, pa, flags);
+    }
+    for(i = 80000000; i < 80400000; i += PGSIZE){
+        pa = PTE2PA(*pte);
+        flags = PTE_FLAGS(*pte);
+        mappages(new, i, PGSIZE, pa, flags);
+    }
+    // another for loop
+    return 0;
+}
+
+void uvmunmap_pt(pagetable_t pagetable, uint64 va, uint64 npages, int do_free){
+
+    uint64 a;
+    pte_t *pte = kalloc();
+
+    for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+        if(do_free){
+            uint64 pa = PTE2PA(*pte);
+            kfree((void*)pa);
+        }
+        *pte = 0;
+    }
+
+}
+
 void handle_sret(struct proc *p){
 
     if(vms.priv >= 1){
@@ -133,7 +171,12 @@ void handle_mret(struct proc *p){
     else{
         setkilled(p);
     }
-
+    if(PMP){
+        pagetable_t kernel_pt = proc_pagetable(p);
+        uvmcopy_pt(p->pagetable, kernel_pt);
+        vms.regs[14].val = (uint64)kernel_pt;
+        uvmunmap_pt(kernel_pt, TOR, 1, 1);
+    }
 }
 
 void trap_and_emulate_ecall(void){
@@ -179,6 +222,9 @@ void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
                 if(i == 15 && *rs1_p == 0x0){ // writing 0x0 to mvendorid is not allowed
                     setkilled(p);
                 }
+                if(i == 39 || i == 40){ 
+                    PMP = true;
+                }
                 vms.regs[i].val = *rs1_p;
             }
             else{
@@ -191,33 +237,6 @@ void handle_csrw(struct proc *p, unsigned int rs1, unsigned int rd, unsigned int
 
 }
 
-// int uvmcopy_pt(pagetable_t old, pagetable_t new, uint64 sz){
-
-//     pte_t *pte;
-//     uint64 pa, i;
-//     char *mem;
-
-//     for(i = 0; i < sz; i += PGSIZE){
-//         pa = PTE2PA(*pte);
-//         memmove(mem, (char*)pa, PGSIZE);
-//     }
-//     return 0;
-// }
-
-// void uvmunmap_pt(pagetable_t pagetable, uint64 va, uint64 npages, int do_free){
-
-//     uint64 a;
-//     pte_t *pte;
-
-//     for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-//         if(do_free){
-//             uint64 pa = PTE2PA(*pte);
-//             kfree((void*)pa);
-//         }
-//         *pte = 0;
-//     }
-
-// }
 
 void trap_and_emulate(void) {
     /* Comes here when a VM tries to execute a supervisor instruction. */
@@ -297,10 +316,10 @@ void trap_and_emulate(void) {
     // current page table is: guest PA -> host PA, so make a copy to a kernel page table and write that address to satp
 
     // if(funct3 == 0 && upper == 0x102 && vms.priv == 1){ // sret
-    //     pagetable_t kernel_pt = uvmcreate();
-    //     uvmcopy_pt(p->pagetable, kernel_pt, 4096);
+    //     pagetable_t kernel_pt = proc_pagetable(p);
+    //     uvmcopy_pt(p->pagetable, kernel_pt); //do in csrw
     //     uint64 invalid_memory = TOR;
-    //     uvmunmap_pt(kernel_pt, invalid_memory, 1, 1);
+    //     uvmunmap_pt(kernel_pt, invalid_memory, 1, 1); // in mret if pmp, unmap invalid memory
     //     vms.regs[14].val = (uint64)kernel_pt;
     // }
     

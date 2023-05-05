@@ -71,6 +71,10 @@ usertrap(void)
     // ok
   } else {
     if(strncmp(p->name, "vm-", 3) == 0){
+      if(r_scause()==12 || r_scause()==13 || r_scause()==15){
+        printf("page fault!\n");
+        setkilled(p);
+      }
       trap_and_emulate();
     }
     else{
